@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CivicLens: Ponda Municipal Council (PMC), Goa
+### The Promise-to-Proof Municipal Governance & Transparency Ledger
+**Enforcing the Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013 & Goa Municipalities Act, 1968**
 
-## Getting Started
+CivicLens is a production-grade, local-first civic reporting and governance ledger deployed for **Ponda Municipal Council (PMC), Goa (पोंडा नगरपालिका)**. It eliminates accountability gaps between citizens and municipal engineers through **The Promise-to-Proof Ledger**, **Two-Stage Geo-Gated Resolution Gates**, **Multimodal AI Intake**, and **Spatial GIS Deduplication**.
 
-First, run the development server:
+---
+
+## 🏛️ Grounded in Ponda, Goa: Jurisdictions & Wards
+
+CivicLens models the real municipal wards of Ponda Municipal Council with precise GeoJSON boundary polygons:
+
+| Ward Code | Ward Name & Localities | Jurisdiction Zone | Key Landmarks |
+|---|---|---|---|
+| **WARD-01** | **Ward 1 - Upper Bazar & Sadar Heritage** | Central Heritage & Market Core | PMC Administrative Bhavan, Old Bus Stand, Kranti Maidan, Almeida High School, Municipal Vegetable & Fish Market |
+| **WARD-02** | **Ward 2 - Khadpabandh & Tisk Urban Corridor** | Commercial & Healthcare Corridor | Tisk Highway Junction, Ponda Sub-District Hospital, Rajiv Gandhi Kala Mandir, Khadpabandh Housing societies |
+| **WARD-03** | **Ward 3 - Curti & Khandepar Riverfront Belt** | Water Works & Industrial Outer Ring | PWD Khandepar Water Works & Raw Water Intake, Curti Industrial Estate, KTC Bus Stand, Betora Bypass |
+
+---
+
+## 🛠️ Municipal Departments & Statutory Goa SLA Mandates
+
+Every reported issue is mapped directly to responsible Goan agencies with statutory turnaround deadlines under the **Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013**:
+
+1. **PWD Division III (Khandepar Water Works)**:
+   - *Scope*: Drinking water feeder pipeline ruptures, treatment plant distribution, pressure failures.
+   - *Statutory SLA*: 8-Hour Emergency Containment; mandatory free municipal water tanker provision if supply disruption exceeds 12 hours.
+2. **PWD Works Division XIV (Roads & Bridges, Ponda)**:
+   - *Scope*: Monsoon pothole craters, asphalt sinkholes, stormwater culverts, road cave-ins.
+   - *Statutory SLA*: Mandatory 4-hour barricading, 48-hour mastic bitumen restoration.
+3. **Ponda Municipal Council Solid Waste Management Cell**:
+   - *Scope*: Market waste dumps, fish market organic waste, door-to-door dry/wet waste segregation, Clean Goa Mission enforcement.
+   - *Statutory SLA*: 24-hour clearance for commercial/residential dump blackspots.
+4. **Goa Electricity Department (Sub-Station Ponda)**:
+   - *Scope*: Streetlight outages, hospital access illumination, fallen cable short-circuit hazards.
+   - *Statutory SLA*: 24-hour luminaire fix; 2-hour emergency isolation for live wire hazards.
+
+---
+
+## 🌟 Core System Modules
+
+### 1. Multimodal Intake & AI Structuring (`/report`)
+- **Voice Note Recording**: Citizens can record voice notes in Konkani, Marathi, or English. The browser Web Speech API transcribes live, and an audio file is preserved.
+- **Automated AI Drafting**: Parses natural speech into structured JSON containing title, category, urgency, suggested department, and legal Citizen Charter rights.
+- **Zero-Config Local Fallback**: Built-in municipal heuristic rule-engine runs completely offline without requiring third-party API keys, with optional OpenAI GPT-4o-mini / Whisper integration.
+
+### 2. GIS Municipal Routing & 50m Spatial Deduplication
+- **Geofenced Ward Routing**: Point-in-Polygon ray-casting matches coordinates to Ponda Municipal Council Wards 1, 2, or 3.
+- **50-Meter Spatial Deduplication**: If an issue is placed within 50 meters of an active complaint in the same category, citizens are alerted and prompted to **"Upvote / Add Observation"**, preventing duplicate work orders.
+- **Dual Identifiers**: Emits immutable platform IDs (`CVL-2026-W03-0842`) alongside municipal legacy reference numbers (`PMC-PWD-8921`).
+
+### 3. The Promise-to-Proof Ledger (`/ticket/[id]`)
+- **Commitment Card**: Displays assigned officer (e.g. Datta Gaonkar, PWD Works Div XIV), public commitment date, and real-time SLA countdown.
+- **Provenance Tracking**: Every log in the timeline displays certified source labels:
+  - `Resident Input` (Green)
+  - `AI Structured` (Purple)
+  - `Official Update` (Blue)
+  - `Proof-of-Work Submitted` (Amber)
+  - `Citizen Verified` / `Citizen Disputed` (Teal/Red)
+- **Ponda Civic Memory**: Automatically discovers past resolved infrastructure tickets within 150 meters to spot recurring municipal problem areas.
+
+### 4. Two-Stage Resolution Gate (Field Worker App `/field`)
+- **Mobile Terminal**: Field workers view work orders with proximity distance calculated from their live or simulated GPS.
+- **Geo-Gated "Proof of Work"**: Staff can only mark a ticket *Provisionally Resolved* by uploading an on-site "After" photograph with verified GPS coordinates matching the incident location.
+- **Sovereign Citizen Sign-Off**:
+  - `[Verify & Close]`: Resident inspects the location and gives final clearance to close the case.
+  - `[Dispute & Reopen]`: If work was substandard, the resident can dispute with reason and evidence photos, triggering an immediate escalation to the Chief Officer of Ponda Municipal Council.
+
+### 5. Trust, Safety & Transparency Dashboard
+- **Citizen Privacy Filter**: Automatic data minimization masks citizen names (`R***n B****r`) and phone numbers (`+91-98****667`) on public ledgers.
+- **Zonal Command Matrix (`/admin`)**: Real-time SLA countdown surveillance and Chief Officer dispute escalation inbox.
+
+---
+
+## 🚀 Quickstart (Zero-Setup Local SQLite Mode)
+
+CivicLens runs out-of-the-box using local SQLite and local filesystem storage with no external dependencies required.
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Push schema to local SQLite database (dev.db)
+npx prisma db push
+
+# 3. Seed real Ponda Municipal Council wards, departments, field workers & tickets
+npx prisma db seed
+
+# 4. Start Development Server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🐳 Optional: PostgreSQL / PostGIS & MinIO Docker Setup
 
-## Learn More
+For Docker deployments using PostgreSQL with PostGIS spatial extensions:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Start PostgreSQL/PostGIS (host port 5433) and MinIO (host port 9010)
+docker compose up -d
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Switch DATABASE_URL in .env:
+# DATABASE_URL="postgresql://civiclens:civiclens_secure_password@localhost:5433/civiclens_db?schema=public"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Push schema and seed PostgreSQL
+npx prisma db push
+npx prisma db seed
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🗺️ Application Routes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Route | Description |
+|---|---|
+| `/` | **Landing Page**: Public GIS Ward Map of Ponda, Transparency Ledger, Live Goa SLA metrics. |
+| `/report` | **Reporting Wizard**: Voice/Photo/Text intake -> AI Draft review -> GIS Pin on Ponda Map -> Deduplication check. |
+| `/ticket/[id]` | **The Promise-to-Proof Docket**: Dual Before/After photo comparison, Two-Stage sign-off gate, neighbor thread, provenance logs, Ponda civic memory. |
+| `/field` | **Field Staff Terminal**: Mobile work queue for Ponda PWD/PMC crews with geo-gated resolution photo upload. |
+| `/admin` | **Command Matrix**: Real-time SLA countdown surveillance & Chief Officer dispute escalations. |
+
+---
+
+## 📞 Emergency Control Room & Contacts
+- **Ponda Municipal Council Control Room**: `0832-2312148`
+- **Toll-Free Goa Citizen Helpline**: `1800-233-0832`
+- **PWD Khandepar Water Supply Emergency**: `0832-2314567`

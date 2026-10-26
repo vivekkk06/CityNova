@@ -1,0 +1,40 @@
+services:
+  # PostgreSQL with PostGIS extension for spatial queries (Production/Docker mode)
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: civiclens-postgis
+    restart: always
+    environment:
+      POSTGRES_USER: civiclens
+      POSTGRES_PASSWORD: civiclens_secure_password
+      POSTGRES_DB: civiclens_db
+    ports:
+      # Port 5433 on host maps to 5432 in container to avoid host port collisions
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U civiclens -d civiclens_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for local S3-compatible media storage (Optional)
+  minio:
+    image: minio/minio:latest
+    container_name: civiclens-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      # High ports 9010/9011 to avoid collision with existing services
+      - "9010:9000"
+      - "9011:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:
