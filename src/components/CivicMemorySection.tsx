@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { History, CheckCircle2, MapPin, ArrowRight, Sparkles } from 'lucide-react';
+import { History, CheckCircle2, MapPin, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface CivicMemoryTicket {
   id: string;
@@ -24,21 +24,21 @@ export default function CivicMemorySection({ pastFixes }: CivicMemorySectionProp
   if (pastFixes.length === 0) return null;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <History className="w-4 h-4" />
+    <div className="bg-amber-50/60 rounded-2xl p-6 border-2 border-amber-200/80 shadow-xs space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shadow-xs">
+            <History className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <span>Civic Memory Ledger</span>
-              <span className="text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                Recurring Spotter
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>Civic Memory &amp; Past Ward History</span>
+              <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                स्थानिक इतिहास
               </span>
             </h3>
-            <p className="text-[11px] text-slate-500">
-              {pastFixes.length} past resolution(s) documented within 150 meters of this exact location.
+            <p className="text-xs text-slate-600">
+              {pastFixes.length} earlier repair(s) documented within 150 meters of this location. Helps prevent recurring issues.
             </p>
           </div>
         </div>
@@ -49,27 +49,27 @@ export default function CivicMemorySection({ pastFixes }: CivicMemorySectionProp
           <Link
             key={ticket.id}
             href={`/ticket/${ticket.caseId}`}
-            className="group block p-3.5 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 transition-all shadow-2xs"
+            className="group block p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-md transition-all text-left"
           >
-            <div className="flex items-center justify-between text-[11px] mb-1">
-              <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="font-mono font-bold text-blue-700">
                 {ticket.caseId}
               </span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[10px]">
-                <CheckCircle2 className="w-3 h-3" /> Resolved ({ticket.distanceMeters}m away)
+              <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 text-[11px] border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Resolved ({ticket.distanceMeters}m away)
               </span>
             </div>
 
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">
+            <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-blue-700 transition-colors">
               {ticket.title}
             </h4>
 
-            <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-              <span>{ticket.category}</span>
-              <span className="text-blue-600 group-hover:translate-x-1 transition-transform flex items-center gap-0.5 font-medium text-[10px]">
-                Inspect Fix <ArrowRight className="w-3 h-3" />
+            <div className="text-[11px] text-slate-500 mt-2 flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="font-medium text-slate-600">{ticket.category}</span>
+              <span className="text-blue-700 group-hover:translate-x-1 transition-transform flex items-center gap-1 font-bold text-xs">
+                View Past Resolution <ArrowRight className="w-3.5 h-3.5" />
               </span>
-            </p>
+            </div>
           </Link>
         ))}
       </div>
