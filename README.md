@@ -1,4 +1,4 @@
-# CityNova: Tranpsarent and interactive civic reporting and accountable governance Platform
+# CityNova: Transparent and interactive civic reporting and accountable governance Platform
 ### Ponda Municipal Council (PMC), Goa
 **Enforcing the Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013 & Goa Municipalities Act, 1968**
 
@@ -95,20 +95,46 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 🐳 Optional: PostgreSQL / PostGIS & MinIO Docker Setup
+## 🐳 Docker Deployment (Full Application Stack)
 
-For Docker deployments using PostgreSQL with PostGIS spatial extensions:
+CityNova is fully dockerized with a production multi-stage Next.js runtime, PostgreSQL with PostGIS spatial extensions, and S3-compatible media storage.
 
+### 1. Start the entire application stack:
 ```bash
-# Start PostgreSQL/PostGIS (host port 5433) and MinIO (host port 9010)
-docker compose up -d
+# Build and start all services (web app, PostGIS, and MinIO)
+docker compose up --build -d
+```
 
-# Switch DATABASE_URL in .env:
-# DATABASE_URL="postgresql://citynova:citynova_secure_password@localhost:5433/citynova_db?schema=public"
+The container automatically:
+- Waits for PostgreSQL to be healthy.
+- Synchronizes the Prisma schema (`npx prisma db push`).
+- Seeds Ponda Municipal Council (PMC) wards, departments, and initial tickets on first startup.
+- Serves the Next.js web application on **[http://localhost:3000](http://localhost:3000)**.
 
-# Push schema and seed PostgreSQL
-npx prisma db push
-npx prisma db seed
+### 2. Service Endpoints & Ports:
+- **CityNova Web App**: [http://localhost:3000](http://localhost:3000)
+- **PostgreSQL / PostGIS**: Host port `5433` (maps to container `5432` to avoid host PostgreSQL port conflicts)
+- **MinIO S3 API**: [http://localhost:9010](http://localhost:9010) (maps to container `9000`)
+- **MinIO Web Console**: [http://localhost:9011](http://localhost:9011) (Username: `minioadmin` / Password: `minioadminpassword`)
+
+### 3. Docker Hub Image Verification & Notes:
+- **`postgis/postgis:16-3.4`**: Verified and active on Docker Hub.
+- **`node:22-bookworm-slim`**: Verified official Node.js image with native OpenSSL support for Prisma.
+- **`coollabsio/minio:latest`**: Verified alternative on Docker Hub. *Note: The official `minio/minio` image was removed from Docker Hub by upstream MinIO; `coollabsio/minio:latest` is a community-maintained 1:1 drop-in replacement built from MinIO releases with the identical CLI and API interface.*
+
+### 4. Useful Docker Commands:
+```bash
+# View application logs
+docker compose logs -f app
+
+# Force re-seed database with initial PMC data
+docker compose exec -e FORCE_SEED=true app /usr/local/bin/docker-entrypoint.sh npm start
+
+# Stop containers
+docker compose down
+
+# Stop and wipe persistent database/upload volumes
+docker compose down -v
 ```
 
 ---
