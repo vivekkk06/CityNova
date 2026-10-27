@@ -171,7 +171,7 @@ export default function FieldWorkerPage() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold mb-2">
                 <Smartphone className="w-3.5 h-3.5 text-blue-700" />
-                GOVERNMENT OF GOA &bull; FIELD WORK ORDERS
+                CITYNOVA FIELD TERMINAL &bull; GOVERNMENT OF GOA
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Ward Field Operations Terminal

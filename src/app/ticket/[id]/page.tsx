@@ -35,15 +35,19 @@ function TicketDetailContent() {
 
   useEffect(() => {
     // Read current persona
-    const saved = localStorage.getItem('civiclens_demo_role') as UserRole | null;
+    const saved = (localStorage.getItem('citynova_demo_role') || localStorage.getItem('civiclens_demo_role')) as UserRole | null;
     if (saved) setUserRole(saved);
 
     const onRoleChange = (e: any) => {
       if (e.detail?.role) setUserRole(e.detail.role);
     };
 
+    window.addEventListener('citynova_role_changed', onRoleChange);
     window.addEventListener('civiclens_role_changed', onRoleChange);
-    return () => window.removeEventListener('civiclens_role_changed', onRoleChange);
+    return () => {
+      window.removeEventListener('citynova_role_changed', onRoleChange);
+      window.removeEventListener('civiclens_role_changed', onRoleChange);
+    };
   }, []);
 
   const loadTicketData = async () => {

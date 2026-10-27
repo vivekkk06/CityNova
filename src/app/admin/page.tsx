@@ -163,7 +163,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold mb-2">
               <Building2 className="w-3.5 h-3.5 text-blue-700" />
-              GOVERNMENT OF GOA &bull; PONDA MUNICIPAL COUNCIL (PMC)
+              GOVERNMENT OF GOA &bull; PONDA MUNICIPAL COUNCIL (PMC) &bull; CITYNOVA
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Chief Officer &amp; Zonal Command Matrix
