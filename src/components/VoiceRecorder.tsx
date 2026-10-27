@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, Square, Volume2 } from 'lucide-react';
 
 interface VoiceRecorderProps {
   onTranscriptComplete: (transcript: string, audioFile?: File) => void;
@@ -15,12 +15,6 @@ export default function VoiceRecorder({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [speechSupported, setSpeechSupported] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-    }
-    return true;
-  });
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -34,7 +28,9 @@ export default function VoiceRecorder({
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (_) {}
+        } catch {
+          // ignore
+        }
       }
     };
   }, []);
@@ -107,7 +103,7 @@ export default function VoiceRecorder({
       }, 1000);
     } catch (err) {
       console.error('Microphone access denied or error:', err);
-      alert('Could not access microphone. Please allow microphone permissions or click one of the sample voice prompts below.');
+      alert('Could not access microphone. Please check microphone permissions or type your complaint directly.');
     }
   };
 
@@ -116,7 +112,9 @@ export default function VoiceRecorder({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (_) {}
+      } catch {
+        // ignore
+      }
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -130,43 +128,25 @@ export default function VoiceRecorder({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const sampleVoicePrompts = [
-    {
-      title: 'Khandepar Water Leak',
-      text: 'Major drinking water pipeline rupture near Curti Junction opposite Khandepar Water Works in Ward 3. Potable water is flooding the road.',
-    },
-    {
-      title: 'Hospital Streetlights Dark',
-      text: 'Four consecutive streetlights on Tisk to Ponda Sub-District Hospital access road in Ward 2 are completely dark, unsafe for ambulances and pedestrians.',
-    },
-    {
-      title: 'Upper Bazar Pothole Crater',
-      text: 'Deep monsoon pothole crater on Old Bus Stand to Kranti Maidan road in Upper Bazar, Ward 1. Two-wheelers are skidding.',
-    },
-  ];
-
   return (
-    <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-200 space-y-3">
+    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               isRecording
                 ? 'bg-red-600 text-white animate-pulse'
-                : 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
             }`}
           >
-            <Mic className="w-5 h-5" />
+            <Mic className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <span>Voice Note Recording &bull; ऑडिओ नोंदणी</span>
-              <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.2 rounded-full">
-                ML Transcribed
-              </span>
+            <h4 className="text-xs font-bold text-slate-900">
+              Voice Note Recording &bull; ऑडिओ नोंदणी
             </h4>
             <p className="text-[11px] text-slate-500">
-              Speak in English, Hindi, or Konkani. The ML engine transcribes and structures your grievance.
+              Speak in English, Hindi (हिंदी), or Konkani (कोंकणी). Speech is automatically transcribed into the box below.
             </p>
           </div>
         </div>
@@ -175,7 +155,7 @@ export default function VoiceRecorder({
           <button
             type="button"
             onClick={stopRecording}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <Square className="w-3.5 h-3.5 fill-current" />
             <span>Finish Recording ({formatTimer(recordingSeconds)})</span>
@@ -185,9 +165,9 @@ export default function VoiceRecorder({
             type="button"
             onClick={startRecording}
             disabled={disabled}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all hover:scale-105 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all hover:scale-105 cursor-pointer"
           >
-            <Mic className="w-4 h-4" />
+            <Mic className="w-3.5 h-3.5" />
             <span>Start Voice Recording</span>
           </button>
         )}
@@ -212,31 +192,11 @@ export default function VoiceRecorder({
 
       {/* Audio Playback preview */}
       {audioUrl && !isRecording && (
-        <div className="flex items-center gap-2 p-2.5 bg-white rounded-lg border border-slate-200">
-          <Volume2 className="w-4 h-4 text-blue-700" />
+        <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
+          <Volume2 className="w-4 h-4 text-blue-700 shrink-0" />
           <audio src={audioUrl} controls className="h-7 w-full text-xs" />
         </div>
       )}
-
-      {/* Quick Sample Voice Note Prompts */}
-      <div className="pt-2 border-t border-slate-200">
-        <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">
-          Or Click A Sample Grievance Simulator:
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {sampleVoicePrompts.map((sample, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onTranscriptComplete(sample.text)}
-              className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-blue-500 text-slate-700 hover:text-blue-700 transition-colors cursor-pointer flex items-center gap-1 font-medium shadow-2xs"
-            >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>{sample.title}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

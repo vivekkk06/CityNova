@@ -7,253 +7,98 @@ import {
   PhoneCall,
   Mail,
   MapPin,
-  Clock,
-  ShieldCheck,
-  CheckCircle2,
-  ExternalLink,
-  MessageSquare,
-  FileCheck2,
-  FileText,
-  AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 
 export default function Footer() {
   return (
     <footer className="w-full bg-slate-900 text-slate-300 border-t border-slate-800 mt-auto">
-      {/* Tricolor Government Accent Bar */}
+      {/* Tricolor Accent Bar */}
       <div className="tricolor-bar w-full" />
 
-      {/* Primary Municipal Footer Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
-          {/* 1. ABOUT US */}
-          <div className="space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start border-b border-slate-800 pb-8">
+          {/* Identity */}
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
                 <Building2 className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-white text-base font-bold tracking-tight">
-                  CityNova Portal
-                </h3>
-                <p className="text-[11px] text-amber-400 font-medium">
-                  Next-Gen Civic Action Platform
+                <span className="text-white text-base font-bold tracking-tight">
+                  City<span className="text-orange-500">Nova</span>
+                </span>
+                <p className="text-[11px] text-slate-400">
+                  Ponda Municipal Council &bull; पोंडा नगरपालिका, Goa
                 </p>
               </div>
             </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              CityNova is the official, citizen-first civic intelligence and grievance redressal platform. 
-              We empower every resident to report potholes, garbage dumps, water bursts, and dark streetlights with legal time-bound resolution guarantees.
+            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+              Official public grievance redressal and transparent service delivery platform backed by statutory turnaround time limits under the Goa Right to Public Services Act 2013.
             </p>
-
-            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5 text-xs">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Statutory Service Guarantee</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-snug">
-                Enforcing the <strong>Right of Citizens to Time-Bound Delivery of Public Services Act</strong>. Every ticket comes with a fixed legal deadline.
-              </p>
-            </div>
           </div>
 
-          {/* 2. CONTACT US */}
-          <div className="space-y-4">
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
-              <PhoneCall className="w-4 h-4 text-orange-400" />
-              <span>Contact Us &bull; संपर्क करें</span>
+          {/* Quick Links */}
+          <div className="space-y-3">
+            <h4 className="text-white text-xs font-bold uppercase tracking-wider">
+              Quick Portals &bull; त्वरित लिंक
             </h4>
-
-            <ul className="space-y-3 text-xs">
-              <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                <span className="text-slate-300">
-                  Municipal Administrative Complex, Sadar, Ponda, Goa &ndash; 403401, India
-                </span>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <Link href="/report" className="text-slate-300 hover:text-orange-400 transition-colors">
+                  + Report Civic Problem (समस्या नोंदवा)
+                </Link>
               </li>
-
-              <li className="flex items-center gap-2.5">
-                <PhoneCall className="w-4 h-4 text-emerald-400 shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold">24x7 Control Room (Toll-Free)</span>
-                  <a
-                    href="tel:1913"
-                    className="text-white font-bold hover:text-orange-400 text-sm transition-colors"
-                  >
-                    1913 / 0832-2312148
-                  </a>
-                </div>
+              <li>
+                <Link href="/#city-map" className="text-slate-300 hover:text-orange-400 transition-colors">
+                  🗺️ City GIS &amp; Google Map
+                </Link>
               </li>
-
-              <li className="flex items-center gap-2.5">
-                <MessageSquare className="w-4 h-4 text-green-400 shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold">WhatsApp Grievance Bot</span>
-                  <a
-                    href="https://wa.me/919822155667?text=Hi%20CityNova"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-200 hover:text-white transition-colors"
-                  >
-                    +91-98221-55667 (24h Chat)
-                  </a>
-                </div>
+              <li>
+                <Link href="/#citizens-rights" className="text-slate-300 hover:text-orange-400 transition-colors">
+                  ⚖️ Citizens&apos; Statutory Rights
+                </Link>
               </li>
-
-              <li className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-blue-400 shrink-0" />
-                <div>
-                  <span className="block text-[10px] text-slate-500 uppercase font-bold">Official Grievance Email</span>
-                  <a
-                    href="mailto:grievance.pmc@goa.gov.in"
-                    className="text-slate-300 hover:text-white transition-colors underline"
-                  >
-                    grievance.pmc@goa.gov.in
-                  </a>
-                </div>
+              <li>
+                <Link href="/#public-ledger" className="text-slate-300 hover:text-orange-400 transition-colors">
+                  📋 Public Promise-to-Proof Ledger
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* 3. WARD MAP & OFFICIALS */}
-          <div className="space-y-4">
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-orange-400" />
-              <span>Ward Map & Officials &bull; वार्ड व अधिकारी</span>
+          {/* Emergency & Contact */}
+          <div className="space-y-3">
+            <h4 className="text-white text-xs font-bold uppercase tracking-wider">
+              24x7 Citizen Helpline &bull; संपर्क
             </h4>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Explore your ward boundaries on our live GIS map and directly reach your designated Ward Engineer:
-            </p>
-
             <div className="space-y-2 text-xs">
-              <Link
-                href="/#map"
-                className="block p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <strong className="text-white text-xs">Ward 1 &ndash; Upper Bazar & Sadar</strong>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
-                    Active
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400 block mt-0.5">
-                  Er. Pradeep Naik &bull; 0832-2312148
-                </span>
-              </Link>
-
-              <Link
-                href="/#map"
-                className="block p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <strong className="text-white text-xs">Ward 2 &ndash; Tisk & Khadpabandh</strong>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
-                    Active
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400 block mt-0.5">
-                  Er. S. Kerkar &bull; +91-98220-44556
-                </span>
-              </Link>
-
-              <Link
-                href="/#map"
-                className="block p-2.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <strong className="text-white text-xs">Ward 3 &ndash; Curti & Khandepar</strong>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
-                    Active
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400 block mt-0.5">
-                  Er. Nilesh Gaonkar &bull; +91-94220-78901
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          {/* 4. PROMISE TO PROOF LEDGER */}
-          <div className="space-y-4">
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
-              <FileCheck2 className="w-4 h-4 text-orange-400" />
-              <span>Promise-to-Proof Ledger &bull; बहीखाता</span>
-            </h4>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Every complaint moves through a transparent 4-stage verified public cycle:
-            </p>
-
-            <ol className="space-y-2 text-[11px] text-slate-300">
-              <li className="flex items-start gap-2">
-                <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  1
-                </span>
-                <span>
-                  <strong>Citizen Reports:</strong> Photo, description & GPS pin recorded.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  2
-                </span>
-                <span>
-                  <strong>Public SLA Commitment:</strong> Legal countdown starts for ward engineer.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  3
-                </span>
-                <span>
-                  <strong>Photo Proof of Work:</strong> Field team uploads geo-tagged repaired photo.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  4
-                </span>
-                <span>
-                  <strong>Resident Verification:</strong> Ticket only closes after you confirm!
-                </span>
-              </li>
-            </ol>
-
-            <div className="pt-2">
-              <Link
-                href="/report"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-all shadow-md"
-              >
-                <span>+ Report a Problem Now</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-emerald-400 shrink-0" />
+                <a href="tel:1913" className="text-white font-bold hover:text-orange-400 text-sm">
+                  1913 (Toll Free) &bull; 0832-2312148
+                </a>
+              </div>
+              <div className="flex items-center gap-2 text-slate-400">
+                <Mail className="w-4 h-4 text-blue-400 shrink-0" />
+                <a href="mailto:grievance.pmc@goa.gov.in" className="hover:text-white transition-colors">
+                  grievance.pmc@goa.gov.in
+                </a>
+              </div>
+              <div className="flex items-start gap-2 text-slate-400 text-[11px] pt-1">
+                <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                <span>Municipal Administrative Complex, Sadar, Ponda, Goa 403401</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Compliance & Copyright Bar */}
-        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <div className="flex flex-wrap items-center gap-3">
-            <span>&copy; 2026 Municipal Corporation &bull; All Rights Reserved.</span>
-            <span className="hidden sm:inline">&bull;</span>
-            <span>CityNova Civic Transparency Platform</span>
+        {/* Simple Bottom Bar */}
+        <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+          <div>
+            &copy; 2026 Ponda Municipal Council &bull; CityNova Civic OS
           </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400">
-            <Link href="/" className="hover:text-white transition-colors">
-              Citizen Charter
-            </Link>
-            <Link href="/" className="hover:text-white transition-colors">
-              Right to Public Services
-            </Link>
-            <Link href="/" className="hover:text-white transition-colors">
-              Privacy & Masking
-            </Link>
-            <Link href="/" className="hover:text-white transition-colors">
-              Open Data API
-            </Link>
+          <div className="text-[11px] text-slate-400">
+            Goa Right to Public Services Act 2013 &bull; Time-Bound Service Guarantee
           </div>
         </div>
       </div>
