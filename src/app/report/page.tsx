@@ -24,6 +24,7 @@ import {
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import VoiceRecorder from '@/components/VoiceRecorder';
+import { useLanguage } from '@/lib/i18n';
 import type { AIStructuredDraft } from '@/lib/ai';
 
 const CivicMap = dynamic(() => import('@/components/CivicMap'), {
@@ -37,6 +38,7 @@ const CivicMap = dynamic(() => import('@/components/CivicMap'), {
 
 export default function ReportPage() {
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   // Wizard Step: 1 = Intake, 2 = AI Draft Review, 3 = GIS Location, 4 = Confirmation/Deduplication
   const [step, setStep] = useState<number>(1);
@@ -254,10 +256,10 @@ export default function ReportPage() {
         <div className="govt-card p-4">
           <div className="flex items-center justify-between">
             {[
-              { num: 1, title: '1. Tell Us Problem', titleHi: 'समस्या' },
-              { num: 2, title: '2. Review Details', titleHi: 'जाँचें' },
-              { num: 3, title: '3. Pick Map Point', titleHi: 'स्थान' },
-              { num: 4, title: '4. Confirm & Submit', titleHi: 'जमा करें' },
+              { num: 1, title: t('step_1_title'), sub: 'Tell Issue' },
+              { num: 2, title: t('step_2_title'), sub: 'AI Structure' },
+              { num: 3, title: t('step_3_title'), sub: 'GIS Pinpoint' },
+              { num: 4, title: t('step_4_title'), sub: 'Statutory Seal' },
             ].map((s, idx) => (
               <div key={s.num} className="flex items-center gap-2">
                 <div
@@ -277,7 +279,7 @@ export default function ReportPage() {
                   >
                     {s.title}
                   </span>
-                  <span className="text-[10px] text-slate-500 block -mt-0.5">{s.titleHi}</span>
+                  <span className="text-[10px] text-slate-500 block -mt-0.5">{s.sub}</span>
                 </div>
                 {idx < 3 && <div className="w-6 sm:w-12 h-0.5 bg-slate-200" />}
               </div>
@@ -290,13 +292,17 @@ export default function ReportPage() {
           <div className="govt-card p-6 sm:p-8 space-y-6">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-orange-600 block mb-1">
-                Step 1 &bull; पहला चरण
+                Step 1 &bull; {language === 'kok' ? 'पयलें पावल' : language === 'hi' ? 'पहला चरण' : 'Intake'}
               </span>
               <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                Describe the Civic Problem &bull; समस्या का विवरण दें
+                {language === 'kok'
+                  ? 'नागरीक समस्येचें विवरण दियात'
+                  : language === 'hi'
+                  ? 'जन समस्या का विवरण दें'
+                  : 'Describe the Civic Problem'}
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                You can speak using the microphone, upload a photo of the problem, or type in simple language.
+              <p className="text-xs text-slate-600 mt-1 font-medium">
+                {t('report_speech_prompt')} Speak or type in English, Hindi (हिंदी), or Konkani (कोंकणी).
               </p>
             </div>
 

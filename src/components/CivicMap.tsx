@@ -17,8 +17,77 @@ import {
   X,
   Camera,
   ExternalLink,
+  ChevronDown,
+  Navigation,
 } from 'lucide-react';
-import type { Map as LeafletMap, Marker as LeafletMarker, LayerGroup } from 'leaflet';
+import type { Map as LeafletMap, Marker as LeafletMarker, LayerGroup, TileLayer } from 'leaflet';
+import { useLanguage } from '@/lib/i18n';
+
+export type MapTileProvider = 'google-roadmap' | 'google-satellite' | 'google-hybrid' | 'google-terrain' | 'municipal-carto';
+
+export interface TileProviderConfig {
+  id: MapTileProvider;
+  label: string;
+  sublabel: string;
+  icon: string;
+  url: string;
+  subdomains: string[];
+  attribution: string;
+  maxZoom: number;
+}
+
+export const TILE_PROVIDERS: Record<MapTileProvider, TileProviderConfig> = {
+  'google-roadmap': {
+    id: 'google-roadmap',
+    label: 'Google Maps (Roadmap)',
+    sublabel: 'Standard Street View',
+    icon: '🗺️',
+    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+  },
+  'google-satellite': {
+    id: 'google-satellite',
+    label: 'Google Satellite',
+    sublabel: 'High-Res Aerial Imagery',
+    icon: '🛰️',
+    url: 'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Satellite Imagery',
+    maxZoom: 20,
+  },
+  'google-hybrid': {
+    id: 'google-hybrid',
+    label: 'Google Hybrid',
+    sublabel: 'Satellite + Roads & Names',
+    icon: '🌐',
+    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Hybrid Maps',
+    maxZoom: 20,
+  },
+  'google-terrain': {
+    id: 'google-terrain',
+    label: 'Google Terrain',
+    sublabel: 'Topographical Contours',
+    icon: '⛰️',
+    url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Terrain',
+    maxZoom: 20,
+  },
+  'municipal-carto': {
+    id: 'municipal-carto',
+    label: 'Municipal GIS Light',
+    sublabel: 'Clean Official Cartography',
+    icon: '🏛️',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    attribution: '&copy; OpenStreetMap &copy; CARTO &copy; CityNova GIS',
+    maxZoom: 19,
+  },
+};
 
 export interface MapTicket {
   id: string;
@@ -79,8 +148,10 @@ export default function CivicMap({
   onCoordinatesChange,
   activeWardId,
 }: CivicMapProps) {
+  const { t } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const baseTileLayerRef = useRef<TileLayer | null>(null);
   const markersLayerRef = useRef<LayerGroup | null>(null);
   const clusterLayerRef = useRef<LayerGroup | null>(null);
   const polygonsLayerRef = useRef<LayerGroup | null>(null);
@@ -90,6 +161,8 @@ export default function CivicMap({
   const [selectedWardForContact, setSelectedWardForContact] = useState<MapWard | null>(null);
   const [showClusters, setShowClusters] = useState(true);
   const [showBoundaries, setShowBoundaries] = useState(true);
+  const [activeTileProvider, setActiveTileProvider] = useState<MapTileProvider>('google-roadmap');
+  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
 
   // Initialize Map
   useEffect(() => {
@@ -110,13 +183,15 @@ export default function CivicMap({
         scrollWheelZoom: !isPicker,
       });
 
-      // Official Clean Light Government Cartography Tiles (CartoDB Voyager)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19,
+      // Default to Google Maps Roadmap Tile Layer
+      const initialProv = TILE_PROVIDERS['google-roadmap'];
+      const initialTileLayer = L.tileLayer(initialProv.url, {
+        attribution: initialProv.attribution,
+        subdomains: initialProv.subdomains,
+        maxZoom: initialProv.maxZoom,
       }).addTo(map);
 
+      baseTileLayerRef.current = initialTileLayer;
       polygonsLayerRef.current = L.layerGroup().addTo(map);
       clusterLayerRef.current = L.layerGroup().addTo(map);
       markersLayerRef.current = L.layerGroup().addTo(map);
@@ -148,6 +223,34 @@ export default function CivicMap({
       }
     };
   }, []);
+
+  // Base Tile Layer Switcher Effect (Google Maps Roadmap / Satellite / Hybrid / Municipal GIS)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapLoaded) return;
+
+    import('leaflet').then((L) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+
+      if (baseTileLayerRef.current) {
+        map.removeLayer(baseTileLayerRef.current);
+      }
+
+      const prov = TILE_PROVIDERS[activeTileProvider];
+      const newLayer = L.tileLayer(prov.url, {
+        attribution: prov.attribution,
+        subdomains: prov.subdomains,
+        maxZoom: prov.maxZoom,
+      }).addTo(map);
+
+      // Keep base tile behind markers and boundaries
+      if ((newLayer as any).bringToBack) {
+        (newLayer as any).bringToBack();
+      }
+
+      baseTileLayerRef.current = newLayer;
+    });
+  }, [activeTileProvider, mapLoaded]);
 
   // Sync active ward or default ward for contact card
   useEffect(() => {
@@ -352,6 +455,10 @@ export default function CivicMap({
               <a href="/ticket/${ticket.caseId}" style="display: block; text-align: center; background: #ea580c; color: white; padding: 7px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">
                 View Promise-to-Proof Ledger &rarr;
               </a>
+
+              <a href="https://www.google.com/maps/search/?api=1&query=${ticket.latitude},${ticket.longitude}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #0f172a; color: white; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; margin-top: 6px;">
+                📍 Open in Google Maps (GPS) ↗
+              </a>
             </div>
           </div>
         `;
@@ -416,6 +523,65 @@ export default function CivicMap({
 
       {/* Top Map Action Bar */}
       <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2">
+        {/* Google Maps / GIS Layer Switcher */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setLayerDropdownOpen(!layerDropdownOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-slate-900 text-xs font-bold shadow-md border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            <span>{TILE_PROVIDERS[activeTileProvider].icon}</span>
+            <span>{TILE_PROVIDERS[activeTileProvider].label}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+          </button>
+
+          {layerDropdownOpen && (
+            <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-40 animate-in fade-in zoom-in-95">
+              <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Map View &bull; मानचित्र प्रकार
+              </div>
+              {(Object.keys(TILE_PROVIDERS) as MapTileProvider[]).map((key) => {
+                const prov = TILE_PROVIDERS[key];
+                const isSelected = activeTileProvider === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setActiveTileProvider(key);
+                      setLayerDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors text-left cursor-pointer ${
+                      isSelected ? 'bg-orange-50 text-orange-900 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{prov.icon}</span>
+                      <div>
+                        <span className="block font-bold leading-tight">{prov.label}</span>
+                        <span className="block text-[10px] text-slate-500 leading-tight">{prov.sublabel}</span>
+                      </div>
+                    </div>
+                    {isSelected && <span className="text-orange-600 font-bold text-xs">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Direct Google Maps Deep-Link */}
+        <a
+          href={`https://www.google.com/maps/@${selectedWardForContact ? selectedWardForContact.centerLat : center[0]},${selectedWardForContact ? selectedWardForContact.centerLng : center[1]},15z`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-md transition-colors"
+          title="Open current area in Google Maps"
+        >
+          <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+          <span>Google Maps ↗</span>
+        </a>
+
         <button
           onClick={handleResetView}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold shadow-md border border-slate-200 hover:bg-slate-50 transition-colors"
@@ -528,6 +694,17 @@ export default function CivicMap({
                 </strong>
               </div>
             </div>
+
+            {/* Google Maps Directions for this ward */}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${selectedWardForContact.centerLat},${selectedWardForContact.centerLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-black text-white rounded-lg font-bold text-xs shadow-xs transition-colors"
+            >
+              <Navigation className="w-3.5 h-3.5 text-blue-400" />
+              <span>Directions on Google Maps ↗</span>
+            </a>
 
             {/* Quick Action: Report for this ward */}
             <Link

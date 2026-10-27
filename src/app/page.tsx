@@ -33,6 +33,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CitizensRightsSection from '@/components/CitizensRightsSection';
 import { formatSlaTimeRemaining } from '@/lib/sla';
+import { useLanguage } from '@/lib/i18n';
 import type { MapTicket, MapWard } from '@/components/CivicMap';
 
 // Dynamically import Leaflet CivicMap to prevent SSR window issues
@@ -49,6 +50,7 @@ const CivicMap = dynamic(() => import('@/components/CivicMap'), {
 });
 
 export default function HomePage() {
+  const { t } = useLanguage();
   const [tickets, setTickets] = useState<any[]>([]);
   const [wards, setWards] = useState<MapWard[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -154,10 +156,12 @@ export default function HomePage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px]">CityNova Telemetry</span>
+              <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px]">
+                {t('hero_telemetry_label')}
+              </span>
               <span className="text-slate-600">|</span>
               <span className="text-slate-300 truncate">
-                Ward 2: 4 High-mast LED luminaires restored 10h ahead of SLA &bull; Ward 3: Khandepar water feeder line isolated &bull; 100% Geo-verified Proof of Work active
+                {t('hero_telemetry_text')}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-3 shrink-0 text-slate-400 text-[10px]">
@@ -172,27 +176,27 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-4 max-w-3xl">
               {/* Official Tricolor Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                GOVERNMENT OF GOA &bull; PONDA MUNICIPAL COUNCIL (PMC) &bull; CITYNOVA
+                {t('hero_tag')}
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                Public Grievance Map &amp;{' '}
+                {t('hero_title_part1')}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-600 to-emerald-600">
-                  Promise-to-Proof
+                  {t('hero_title_accent')}
                 </span>{' '}
-                Ledger
+                {t('hero_title_part2')}
               </h1>
 
-              <p className="text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
-                नागरिक तक्रार व सेवा हमी मंच &bull; Powered by <strong>CityNova</strong>. Every civic issue is recorded publicly with statutory turnaround countdowns under the <strong>Goa Right to Public Services Act 2013</strong>. No docket can be resolved without verified GPS photo proof and resident sign-off.
+              <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
+                {t('hero_subtitle')}
               </p>
 
               {/* Quick Category Filter Tags */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
-                  Quick Topics:
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mr-1">
+                  {t('quick_topics')}
                 </span>
                 {categories.map((cat) => (
                   <button
@@ -205,7 +209,7 @@ export default function HomePage() {
                     className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all cursor-pointer ${
                       selectedCategory === cat
                         ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-orange-300 hover:bg-orange-50/50'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-orange-300 hover:bg-orange-50/50'
                     }`}
                   >
                     {cat.split(' ')[0]} {cat.includes('Water') ? 'Leak' : cat.includes('Road') ? 'Pothole' : ''}
@@ -215,9 +219,9 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setSelectedCategory('all')}
-                    className="text-xs text-orange-600 font-bold hover:underline ml-1"
+                    className="text-xs text-orange-600 font-bold hover:underline ml-1 cursor-pointer"
                   >
-                    Reset Filter
+                    {t('reset_filter')}
                   </button>
                 )}
               </div>
@@ -230,7 +234,7 @@ export default function HomePage() {
                 className="btn-saffron flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-105"
               >
                 <FilePlus2 className="w-5 h-5" />
-                <span>+ Report Civic Problem</span>
+                <span>{t('btn_report_problem')}</span>
               </Link>
 
               <button
@@ -239,7 +243,7 @@ export default function HomePage() {
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>Ask CityNova Copilot</span>
+                <span>{t('btn_ask_copilot')}</span>
               </button>
             </div>
           </div>
@@ -251,61 +255,61 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
           <div className="govt-card p-4">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              Total Reported
+              {t('stats_total')}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {stats?.total ?? 8077}+
             </p>
             <span className="text-[11px] text-slate-500 font-medium mt-1 block">
-              Cumulative Registered
+              {t('stats_total_sub')}
             </span>
           </div>
 
           <div className="govt-card p-4">
             <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
-              Active Under Work
+              {t('stats_active')}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 tracking-tight">
               {stats?.inProgress ?? 7792}
             </p>
             <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
-              SLA Countdown Active
+              {t('stats_active_sub')}
             </span>
           </div>
 
           <div className="govt-card p-4">
             <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-              Verified Resolved
+              {t('stats_resolved')}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight">
               {stats?.resolved ?? 285}
             </p>
             <span className="text-[11px] text-emerald-700 font-semibold mt-1 block">
-              With Photo Proof
+              {t('stats_resolved_sub')}
             </span>
           </div>
 
           <div className="govt-card p-4">
             <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block mb-1">
-              Published Wards
+              {t('stats_wards')}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {wards.length || 3} Wards
             </p>
             <span className="text-[11px] text-purple-700 font-semibold mt-1 block">
-              100% Geo-Fenced
+              {t('stats_wards_sub')}
             </span>
           </div>
 
           <div className="govt-card p-4 col-span-2 md:col-span-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              Statutory SLA Rate
+              {t('stats_sla')}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold text-blue-700 tracking-tight">
               {stats?.slaComplianceRate ?? 96.4}%
             </p>
             <span className="text-[11px] text-slate-600 font-medium block mt-1">
-              Avg Fix: {stats?.avgResolutionHours ?? 32} hrs
+              {t('stats_sla_sub')}: {stats?.avgResolutionHours ?? 32}h
             </span>
           </div>
         </div>
@@ -325,7 +329,7 @@ export default function HomePage() {
                 }`}
               >
                 <Compass className="w-4 h-4 text-orange-600" />
-                <span>Map View (मानचित्र)</span>
+                <span>{t('tab_map')}</span>
               </button>
 
               <button
@@ -338,7 +342,7 @@ export default function HomePage() {
                 }`}
               >
                 <List className="w-4 h-4 text-blue-600" />
-                <span>Promise Ledger ({filteredTickets.length})</span>
+                <span>{t('tab_ledger')} ({filteredTickets.length})</span>
               </button>
 
               <button
@@ -351,7 +355,7 @@ export default function HomePage() {
                 }`}
               >
                 <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span>Ward Officials</span>
+                <span>{t('tab_officials')}</span>
               </button>
 
               <button
@@ -364,7 +368,7 @@ export default function HomePage() {
                 }`}
               >
                 <Scale className="w-4 h-4 text-purple-600" />
-                <span>Citizens&apos; Rights</span>
+                <span>{t('tab_rights')}</span>
               </button>
             </div>
 
@@ -373,7 +377,7 @@ export default function HomePage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search case, landmark, title..."
+                  placeholder={t('filter_search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="text-xs py-2 pl-8 pr-3 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-orange-500 w-44 sm:w-56 font-medium"
@@ -386,7 +390,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedWard(e.target.value)}
                 className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold cursor-pointer"
               >
-                <option value="all">All Wards (सभी वार्ड)</option>
+                <option value="all">{t('filter_all_wards')}</option>
                 {wards.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name} ({w.code})
@@ -399,7 +403,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium cursor-pointer"
               >
-                <option value="all">All Categories</option>
+                <option value="all">{t('filter_all_categories')}</option>
                 {categories.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -412,7 +416,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium cursor-pointer"
               >
-                <option value="all">All Status</option>
+                <option value="all">{t('filter_all_status')}</option>
                 <option value="OPEN">Open (Urgent)</option>
                 <option value="IN_PROGRESS">In Progress (कार्य जारी)</option>
                 <option value="PROVISIONALLY_RESOLVED">Pending Citizen Sign-off</option>
@@ -551,12 +555,12 @@ export default function HomePage() {
                         {/* Simple Info Row */}
                         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">Reported by:</span>
-                            <strong className="text-slate-800 font-mono">{ticket.citizenName}</strong>
+                            <span className="text-slate-600 font-medium">{t('reported_by')}</span>
+                            <strong className="text-slate-900 font-mono font-bold">{ticket.citizenName}</strong>
                           </div>
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">SLA Guarantee:</span>
-                            <span className={`px-1.5 py-0.5 rounded font-bold ${sla.badgeClass}`}>
+                            <span className="text-slate-600 font-medium">{t('sla_guarantee')}</span>
+                            <span className={`px-2 py-0.5 rounded font-extrabold ${sla.badgeClass}`}>
                               {isClosed ? 'SLA Met & Verified' : sla.text}
                             </span>
                           </div>
@@ -567,22 +571,22 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={() => handleUpvote(ticket.id)}
-                            className="inline-flex items-center gap-1.5 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 font-bold transition-transform active:scale-95 cursor-pointer shadow-2xs"
+                            className="inline-flex items-center gap-1.5 text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 font-bold transition-transform active:scale-95 cursor-pointer shadow-2xs"
                             title="Click to confirm and upvote this civic issue"
                           >
                             <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{ticket.upvoteCount || 1} Confirmed Genuine</span>
+                            <span>{ticket.upvoteCount || 1} {t('confirmed_genuine')}</span>
                           </button>
 
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => handleCopyLink(ticket.caseId)}
-                              className="inline-flex items-center gap-1 text-slate-500 hover:text-blue-700 font-medium p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 text-slate-600 hover:text-blue-700 font-bold p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
                               title="Copy link to this docket"
                             >
                               <Copy className="w-3.5 h-3.5" />
-                              <span className="text-[10px]">{copiedId === ticket.caseId ? 'Copied!' : 'Share'}</span>
+                              <span className="text-[10px]">{copiedId === ticket.caseId ? t('copied_toast') : t('share_docket')}</span>
                             </button>
 
                             <Link
@@ -596,17 +600,24 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      {/* Footer: View Ledger Button */}
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500 truncate max-w-[140px]">
-                          {ticket.addressDescription}
-                        </span>
+                      {/* Footer: Google Maps link + Inspect Docket Button */}
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${ticket.latitude},${ticket.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline"
+                          title="Open coordinates in Google Maps"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-red-600" />
+                          <span>Google Maps ↗</span>
+                        </a>
 
                         <Link
                           href={`/ticket/${ticket.caseId}`}
-                          className="flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline"
+                          className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-700 hover:underline"
                         >
-                          <span>Inspect Full Docket</span>
+                          <span>{t('inspect_full_docket')}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>

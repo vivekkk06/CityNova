@@ -16,6 +16,7 @@ import {
   Minimize2,
   Maximize2,
 } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 interface ChatMessage {
   id: string;
@@ -26,6 +27,7 @@ interface ChatMessage {
 }
 
 export default function AiCivicChatbot() {
+  const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [inputQuery, setInputQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -88,7 +90,7 @@ Ask me anything about:
       const res = await fetch('/api/ai/enquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: textToSend.trim() }),
+        body: JSON.stringify({ query: textToSend.trim(), language }),
       });
       const data = await res.json();
 
