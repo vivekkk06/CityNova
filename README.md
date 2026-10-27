@@ -1,157 +1,193 @@
-# CityNova: Transparent and interactive civic reporting and accountable governance Platform
-### Ponda Municipal Council (PMC), Goa
-**Enforcing the Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013 & Goa Municipalities Act, 1968**
+# CityNova --- CivicLens
 
-CityNova is a production-grade, local-first civic reporting and governance ledger deployed for **Ponda Municipal Council (PMC), Goa**. It eliminates accountability gaps between citizens and municipal engineers through **The Promise-to-Proof Ledger**, **Two-Stage Geo-Gated Resolution Gates**, **Multimodal AI Intake**, and **Spatial GIS Deduplication**.
+**Transparent and Interactive Civic Reporting and Accountable Governance
+System**\
+**Theme:** Governance & Civic Technology\
+**Team:** CityNova\
+**Team ID:** `HSC|GA|00013`\
+**State:** Goa, India
 
----
+## Overview
 
-## 🏛️ Grounded in Ponda, Goa: Jurisdictions & Wards
+CityNova is a socially interactive civic-tech platform designed to
+connect citizens with local authorities and make community issues easier
+to report, discuss, track, and resolve. The goal is to improve
+transparency and accountability by giving citizens a shared place to
+raise concerns and follow the progress of civic work.
 
-CityNova models the real municipal wards of Ponda Municipal Council with precise GeoJSON boundary polygons:
+The platform is envisioned as a "city in your pocket," bringing civic
+reporting and public information into one accessible interface.
 
-| Ward Code | Ward Name & Localities | Jurisdiction Zone | Key Landmarks |
-|---|---|---|---|
-| **WARD-01** | **Ward 1 - Upper Bazar & Sadar Heritage** | Central Heritage & Market Core | PMC Administrative Bhavan, Old Bus Stand, Kranti Maidan, Almeida High School, Municipal Vegetable & Fish Market |
-| **WARD-02** | **Ward 2 - Khadpabandh & Tisk Urban Corridor** | Commercial & Healthcare Corridor | Tisk Highway Junction, Ponda Sub-District Hospital, Rajiv Gandhi Kala Mandir, Khadpabandh Housing societies |
-| **WARD-03** | **Ward 3 - Curti & Khandepar Riverfront Belt** | Water Works & Industrial Outer Ring | PWD Khandepar Water Works & Raw Water Intake, Curti Industrial Estate, KTC Bus Stand, Betora Bypass |
+## The Problem
 
----
+Citizens face everyday community problems such as potholes, garbage
+accumulation, water scarcity, leakage, theft, and bullying. They may not
+know which authority is responsible, how to contact it, or how to follow
+up after submitting a complaint. Information about reports, official
+responses, and completed work can be difficult to find in one place.
 
-## 🛠️ Municipal Departments & Statutory Goa SLA Mandates
+CityNova aims to bridge this gap with an interactive platform where
+citizens can report issues, contribute evidence, and track official
+commitments.
 
-Every reported issue is mapped directly to responsible Goan agencies with statutory turnaround deadlines under the **Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013**:
+## Proposed Solution
 
-1. **PWD Division III (Khandepar Water Works)**:
-   - *Scope*: Drinking water feeder pipeline ruptures, treatment plant distribution, pressure failures.
-   - *Statutory SLA*: 8-Hour Emergency Containment; mandatory free municipal water tanker provision if supply disruption exceeds 12 hours.
-2. **PWD Works Division XIV (Roads & Bridges, Ponda)**:
-   - *Scope*: Monsoon pothole craters, asphalt sinkholes, stormwater culverts, road cave-ins.
-   - *Statutory SLA*: Mandatory 4-hour barricading, 48-hour mastic bitumen restoration.
-3. **Ponda Municipal Council Solid Waste Management Cell**:
-   - *Scope*: Market waste dumps, fish market organic waste, door-to-door dry/wet waste segregation, Clean Goa Mission enforcement.
-   - *Statutory SLA*: 24-hour clearance for commercial/residential dump blackspots.
-4. **Goa Electricity Department (Sub-Station Ponda)**:
-   - *Scope*: Streetlight outages, hospital access illumination, fallen cable short-circuit hazards.
-   - *Statutory SLA*: 24-hour luminaire fix; 2-hour emergency isolation for live wire hazards.
+CityNova combines civic issue reporting with social interaction and
+accountability features. Citizens can submit reports, discuss issues,
+add supporting evidence, and follow updates. Authorities can post
+responses and progress updates. The platform also aims to make recurring
+problems and ward-level indicators more visible.
 
----
+## Key Features
 
-## 🌟 Core System Modules
+-   **Multi-format civic reporting:** Submit issues using text,
+    photographs, voice notes, and geolocation.
+-   **Map-based issue visibility:** View reports across different areas
+    of a city.
+-   **ML-assisted categorization:** Help classify reports so they are
+    easier to organize and access.
+-   **Community interaction:** Allow residents to comment, confirm
+    reports, flag possible duplicates, and contribute additional
+    evidence.
+-   **Promise-to-Proof Ledger:** Keep a time-stamped record of official
+    commitments, deadlines, progress updates, and evidence of completed
+    work.
+-   **Ward-level dashboard:** Surface recurring problems, pending
+    complaints, resolution timelines, and ward-level performance
+    indicators.
+-   **Know Your Rights:** Provide citizens with information about
+    relevant rights, official channels, and ways to seek assistance.
+-   **AI public-enquiry agent:** Help users find general information and
+    navigate the platform.
+-   **Privacy-conscious reporting:** Support anonymous reporting to help
+    protect a reporter's public profile.
+-   **Civic contribution score:** Explore a contribution-based score
+    that recognizes useful, genuine reports and successful resolution.
+    Scoring rules should be transparent and include safeguards against
+    unfair penalties.
 
-### 1. Multimodal Intake & AI Structuring (`/report`)
-- **Voice Note Recording**: Citizens can record voice notes in Konkani, Marathi, or English. The browser Web Speech API transcribes live, and an audio file is preserved.
-- **Automated AI Drafting**: Parses natural speech into structured JSON containing title, category, urgency, suggested department, and legal Citizen Charter rights.
-- **Zero-Config Local Fallback**: Built-in CityNova municipal heuristic rule-engine runs completely offline without requiring third-party API keys, with optional OpenAI GPT-4o-mini / Whisper integration.
+## Technical Approach
 
-### 2. GIS Municipal Routing & 50m Spatial Deduplication
-- **Geofenced Ward Routing**: Point-in-Polygon ray-casting matches coordinates to Ponda Municipal Council Wards 1, 2, or 3.
-- **50-Meter Spatial Deduplication**: If an issue is placed within 50 meters of an active complaint in the same category, citizens are alerted and prompted to **"Upvote / Add Observation"**, preventing duplicate work orders.
-- **Dual Identifiers**: Emits immutable platform IDs (`CTN-2026-W03-0842`) alongside municipal legacy reference numbers (`PMC-PWD-8921`).
+The project presentation describes the following technical components:
 
-### 3. The Promise-to-Proof Ledger (`/ticket/[id]`)
-- **Commitment Card**: Displays assigned officer (e.g. Datta Gaonkar, PWD Works Div XIV), public commitment date, and real-time SLA countdown.
-- **Provenance Tracking**: Every log in the timeline displays certified source labels:
-  - `Resident Input` (Green)
-  - `AI Structured` (Purple)
-  - `Official Update` (Blue)
-  - `Proof-of-Work Submitted` (Amber)
-  - `Citizen Verified` / `Citizen Disputed` (Teal/Red)
-- **Ponda Civic Memory**: Automatically discovers past resolved infrastructure tickets within 150 meters to spot recurring municipal problem areas.
+1.  A simple website with sections for citizens, authorities, city
+    information, and an AI enquiry agent.
+2.  Reporting through text, images, voice notes, and geolocation.
+3.  Machine-learning-assisted classification of civic reports.
+4.  Community feedback and evidence to support report verification.
+5.  A time-stamped ledger for commitments, deadlines, progress, and
+    completion evidence.
+6.  Dashboards for recurring issues, pending reports, resolution
+    timelines, and ward-level indicators.
 
-### 4. Two-Stage Resolution Gate (Field Worker App `/field`)
-- **Mobile Terminal**: Field workers view work orders with proximity distance calculated from their live or simulated GPS.
-- **Geo-Gated "Proof of Work"**: Staff can only mark a ticket *Provisionally Resolved* by uploading an on-site "After" photograph with verified GPS coordinates matching the incident location.
-- **Sovereign Citizen Sign-Off**:
-  - `[Verify & Close]`: Resident inspects the location and gives final clearance to close the case.
-  - `[Dispute & Reopen]`: If work was substandard, the resident can dispute with reason and evidence photos, triggering an immediate escalation to the Chief Officer of Ponda Municipal Council.
+**Technology stack:** The project presentation refers to web frameworks,
+databases, and AI/ML tools, but does not specify their exact names.
+Update this section with the actual frameworks, languages, database,
+APIs, and model/tool names used in the repository.
 
-### 5. Trust, Safety & Transparency Dashboard
-- **Citizen Privacy Filter**: Automatic data minimization masks citizen names (`R***n B****r`) and phone numbers (`+91-98****667`) on public ledgers.
-- **Zonal Command Matrix (`/admin`)**: Real-time SLA countdown surveillance and Chief Officer dispute escalation inbox.
-- **CityNova AI Copilot**: 24x7 municipal AI assistant with quick prompts for statutory SLAs, officer contacts, and tracking.
+## Pilot Plan
 
----
+The proposed beta pilot begins with **five wards** and five issue
+categories:
 
-## 🚀 Quickstart (Zero-Setup Local SQLite Mode)
+-   Roads
+-   Water
+-   Garbage
+-   Electricity
+-   Safety
 
-CityNova runs out-of-the-box using local SQLite and local filesystem storage with no external dependencies required.
+The team intends to engage municipal authorities to validate reporting
+workflows and encourage participation. The pilot can be evaluated using
+measures such as report classification quality, duplicate detection,
+response times, evidence-backed resolution, repeat issues, and citizen
+usability.
 
-```bash
-# 1. Install dependencies
-npm install
+## Expected Impact
 
-# 2. Push schema to local SQLite database (dev.db)
-npx prisma db push
+-   **Greater transparency:** Make reports and official responses easier
+    to find.
+-   **Stronger accountability:** Let citizens follow commitments and
+    inspect evidence of completed work.
+-   **Better prioritization:** Highlight urgent, recurring, and
+    long-pending problems.
+-   **More citizen participation:** Give residents a shared place to
+    report, discuss, and support civic issues.
+-   **Improved public trust:** Make progress and outcomes more visible.
+-   **Sustainable communities:** Support collective action toward
+    cleaner and safer neighbourhoods.
 
-# 3. Seed real Ponda Municipal Council wards, departments, field workers & tickets
-npx prisma db seed
+## Feasibility, Risks, and Safeguards
 
-# 4. Start Development Server
-npm run dev
-```
+Key risks include fake or duplicate reports, privacy and security
+concerns, low official participation, biased ward comparisons, misuse of
+civic scores, and outdated information.
 
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+Potential safeguards include:
 
----
+-   Moderation, duplicate detection, and evidence-based verification.
+-   Data minimization, access controls, and clear privacy practices.
+-   Transparent scoring criteria and an appeal process.
+-   Avoiding simplistic ward rankings that ignore differences in
+    reporting rates and local context.
+-   Showing official sources, update dates, and uncertainty where
+    applicable.
+-   Starting with a small pilot and expanding after evaluation.
 
-## 🐳 Docker Deployment (Full Application Stack)
+Reports involving police or neighbours should not expose a reporter's
+identity or make public verification a requirement in situations where
+it could create safety risks. Any civic score should assess the quality
+of contributions rather than reward volume alone.
 
-CityNova is fully dockerized with a production multi-stage Next.js runtime, PostgreSQL with PostGIS spatial extensions, and S3-compatible media storage.
+## Team
 
-### 1. Start the entire application stack:
-```bash
-# Build and start all services (web app, PostGIS, and MinIO)
-docker compose up --build -d
-```
+-   Tarique Bin Yusuf
+-   Vivek Badgujar
+-   Anuneet Gupta
 
-The container automatically:
-- Waits for PostgreSQL to be healthy.
-- Synchronizes the Prisma schema (`npx prisma db push`).
-- Seeds Ponda Municipal Council (PMC) wards, departments, and initial tickets on first startup.
-- Serves the Next.js web application on **[http://localhost:3000](http://localhost:3000)**.
+## References and Related Work
 
-### 2. Service Endpoints & Ports:
-- **CityNova Web App**: [http://localhost:3000](http://localhost:3000)
-- **PostgreSQL / PostGIS**: Host port `5433` (maps to container `5432` to avoid host PostgreSQL port conflicts)
-- **MinIO S3 API**: [http://localhost:9010](http://localhost:9010) (maps to container `9000`)
-- **MinIO Web Console**: [http://localhost:9011](http://localhost:9011) (Username: `minioadmin` / Password: `minioadminpassword`)
+These projects and resources informed the concept and provide useful
+points of comparison:
 
-### 3. Docker Hub Image Verification & Notes:
-- **`postgis/postgis:16-3.4`**: Verified and active on Docker Hub.
-- **`node:22-bookworm-slim`**: Verified official Node.js image with native OpenSSL support for Prisma.
-- **`coollabsio/minio:latest`**: Verified alternative on Docker Hub. *Note: The official `minio/minio` image was removed from Docker Hub by upstream MinIO; `coollabsio/minio:latest` is a community-maintained 1:1 drop-in replacement built from MinIO releases with the identical CLI and API interface.*
+-   [Nagarika](https://nagarika.app/) --- civic reporting and
+    accountability.
+-   [Puramithra](https://cdma.ap.gov.in/initiatives/puramithra/) ---
+    municipal citizen services in Andhra Pradesh.
+-   [CPGRAMS](https://pgportal.gov.in/) --- Government of India public
+    grievance portal.
+-   [MyNeta](https://myneta.com/) --- civic accountability platform.
+-   [Digital Personal Data Protection Act,
+    2023](https://www.indiacode.nic.in/) --- Indian data-protection
+    legislation.
+-   [FixMyStreet](https://fixmystreet.org/) --- civic issue reporting;
+    [source code](https://github.com/mysociety/fixmystreet).
+-   [United Nations Sustainable Development
+    Goals](https://sdgs.un.org/goals), particularly [SDG
+    11](https://sdgs.un.org/goals/goal11) and [SDG
+    16](https://sdgs.un.org/goals/goal16).
 
-### 4. Useful Docker Commands:
-```bash
-# View application logs
-docker compose logs -f app
+## Project Status
 
-# Force re-seed database with initial PMC data
-docker compose exec -e FORCE_SEED=true app /usr/local/bin/docker-entrypoint.sh npm start
+The team presentation describes a website prototype with an AI
+public-enquiry agent, ML-assisted report classification, and
+voice-related capabilities. The platform is still being improved,
+including work on reliability and usability. Check the current
+repository to confirm which features are implemented, partially
+implemented, or planned.
 
-# Stop containers
-docker compose down
+## Contributing
 
-# Stop and wipe persistent database/upload volumes
-docker compose down -v
-```
+Contributions, feedback, and suggestions are welcome. Before
+contributing:
 
----
+1.  Review the current project structure and setup instructions.
+2.  Open an issue to discuss a substantial feature or change.
+3.  Keep privacy, accessibility, safety, and verifiability in mind when
+    proposing changes.
+4.  Update documentation when behaviour or setup steps change.
 
-## 🗺️ Application Routes
+## License
 
-| Route | Description |
-|---|---|
-| `/` | **Landing Page**: Public GIS Ward Map of Ponda, Transparency Ledger, Live Goa SLA metrics. |
-| `/report` | **Reporting Wizard**: Voice/Photo/Text intake -> AI Draft review -> GIS Pin on Ponda Map -> Deduplication check. |
-| `/ticket/[id]` | **The Promise-to-Proof Docket**: Dual Before/After photo comparison, Two-Stage sign-off gate, neighbor thread, provenance logs, Ponda civic memory. |
-| `/field` | **Field Staff Terminal**: Mobile work queue for Ponda PWD/PMC crews with geo-gated resolution photo upload. |
-| `/admin` | **Command Matrix**: Real-time SLA countdown surveillance & Chief Officer dispute escalations. |
-
----
-
-## 📞 Emergency Control Room & Contacts
-- **Ponda Municipal Council Control Room**: `0832-2312148`
-- **Toll-Free Citizen Helpline**: `1913`
-- **PWD Khandepar Water Supply Emergency**: `0832-2314567`
+No license has been specified yet. Add a `LICENSE` file before
+presenting this project as open source. Without a license, the
+repository's default copyright restrictions generally remain in effect.
