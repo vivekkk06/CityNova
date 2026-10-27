@@ -35,16 +35,16 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-white text-base font-bold tracking-tight">
-                  Muncihelp Portal
+                  CityNova Portal
                 </h3>
                 <p className="text-[11px] text-amber-400 font-medium">
-                  Municipal Civic Action System
+                  Next-Gen Civic Action Platform
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Muncihelp is the official, citizen-first civic grievance redressal portal. 
+              CityNova is the official, citizen-first civic intelligence and grievance redressal platform. 
               We empower every resident to report potholes, garbage dumps, water bursts, and dark streetlights with legal time-bound resolution guarantees.
             </p>
 
@@ -92,7 +92,7 @@ export default function Footer() {
                 <div>
                   <span className="block text-[10px] text-slate-500 uppercase font-bold">WhatsApp Grievance Bot</span>
                   <a
-                    href="https://wa.me/919822155667?text=Hi%20Muncihelp"
+                    href="https://wa.me/919822155667?text=Hi%20CityNova"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-slate-200 hover:text-white transition-colors"
@@ -238,7 +238,7 @@ export default function Footer() {
           <div className="flex flex-wrap items-center gap-3">
             <span>&copy; 2026 Municipal Corporation &bull; All Rights Reserved.</span>
             <span className="hidden sm:inline">&bull;</span>
-            <span>Muncihelp Civic Transparency Portal</span>
+            <span>CityNova Civic Transparency Platform</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400">

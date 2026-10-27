@@ -13,21 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Muncihelp | Municipal Civic Action & Citizen Grievance Portal',
+  title: 'CityNova | Next-Gen AI Civic Action & Municipal Governance Platform',
   description:
-    'Official Municipal Civic Action Portal & Citizen Grievance Redressal System. Report potholes, waste, water leakage, or streetlights with time-bound statutory SLA, live ward map, officer directory, and transparent photo proof of work.',
+    'CityNova is the official municipal civic action and transparent governance platform. Report potholes, waste dumps, water leakages, and streetlights with time-bound statutory SLA countdowns, live GIS ward maps, municipal officer directories, and cryptographic-grade photo proof of work.',
   keywords: [
-    'Muncihelp',
+    'CityNova',
+    'CityNova Civic Platform',
     'Municipal Civic Action',
     'Citizen Grievance Redressal',
     'Ponda Municipal Council',
-    'Ward Map',
+    'Ward GIS Map',
     'Ward Officer Directory',
     'Time-Bound Public Services Act',
-    'Civic Grievances',
-    'Nagarika',
-    'Jantra',
     'Promise to Proof Ledger',
+    'Civic Technology',
   ],
 };
 
