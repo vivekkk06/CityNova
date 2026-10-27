@@ -154,13 +154,13 @@ export async function findCivicMemoryNearby(lat: number, lng: number, radiusMete
 }
 
 /**
- * Generates an immutable CivicLens Case ID (e.g. CVL-2026-W101-0842)
+ * Generates an immutable CityNova Case ID (e.g. CTN-2026-W101-0842)
  */
 export function generateCaseId(wardCode: string): string {
   const year = new Date().getFullYear();
   const wardSuffix = wardCode.replace(/[^0-9]/g, '') || '101';
   const randomSeq = Math.floor(1000 + Math.random() * 9000);
-  return `CVL-${year}-W${wardSuffix}-${randomSeq}`;
+  return `CTN-${year}-W${wardSuffix}-${randomSeq}`;
 }
 
 /**

@@ -174,7 +174,7 @@ async function main() {
   // Ticket 1: Khandepar Main Feeder Pipeline Burst in Curti (Ward 3)
   const ticket1 = await prisma.ticket.create({
     data: {
-      caseId: "CVL-2026-W03-0842",
+      caseId: "CTN-2026-W03-0842",
       legacyGrievanceNumber: "PMC-PWD-8921",
       title: "Khandepar main feeder drinking water pipeline rupture near Curti Junction",
       description: "High-pressure 300mm potable feeder line ruptured opposite the Khandepar Water Works access road. Potable water flooding highway lane toward Curti Industrial Estate.",
@@ -214,7 +214,7 @@ async function main() {
         ticketId: ticket1.id,
         sourceLabel: "AI Structured",
         action: "AI_ANALYSIS_COMPLETED",
-        actorName: "CivicLens AI Vision & NLP",
+        actorName: "CityNova AI Vision & NLP",
         actorRole: "Automated Governance Agent",
         details: "Classified as PWD Water Supply (Khandepar) / CRITICAL urgency. Geofence polygon matched to Ward 3 (Curti-Khandepar). Goa Public Services Act 2013 statutory SLA attached.",
         timestamp: new Date(Date.now() - 2.1 * 3600 * 1000),
@@ -265,7 +265,7 @@ async function main() {
   // Ticket 2: Streetlight Outage near Sub-District Hospital, Khadpabandh (Ward 2) - PROVISIONALLY RESOLVED
   const ticket2 = await prisma.ticket.create({
     data: {
-      caseId: "CVL-2026-W02-0419",
+      caseId: "CTN-2026-W02-0419",
       legacyGrievanceNumber: "PMC-ELE-1049",
       title: "High-mast streetlight and 4 pedestrian poles dark on Tisk to Sub-District Hospital road",
       description: "Series of streetlights non-functional starting from Tisk junction toward Ponda Sub-District Hospital. Very dark stretch creates hazards for ambulance arrivals and night visitors.",
@@ -320,7 +320,7 @@ async function main() {
   // Ticket 3: Pothole & Road Damage on Upper Bazar road (Ward 1) - HISTORICAL CIVIC MEMORY
   const ticket3 = await prisma.ticket.create({
     data: {
-      caseId: "CVL-2026-W01-0112",
+      caseId: "CTN-2026-W01-0112",
       legacyGrievanceNumber: "PMC-PWD-4421",
       title: "Deep monsoon pothole crater on Old Bus Stand to Kranti Maidan road",
       description: "Severe pothole crater near Almeida High School turning on Old Bus Stand road. Two-wheelers constantly dodging into oncoming traffic.",
@@ -374,7 +374,7 @@ async function main() {
   // Ticket 4: Commercial Waste Dump behind Upper Bazar Market (Ward 1) - DISPUTED / ESCALATED TO CHIEF OFFICER
   const ticket4 = await prisma.ticket.create({
     data: {
-      caseId: "CVL-2026-W01-0951",
+      caseId: "CTN-2026-W01-0951",
       legacyGrievanceNumber: "PMC-SAN-7703",
       title: "Commercial fish and vegetable waste dumped behind Upper Bazar Municipal Market",
       description: "Rotting fish crates and unsegregated vegetable waste dumped in the rear lane behind the municipal market. Severe stench affecting nearby residential apartments.",
@@ -428,7 +428,7 @@ async function main() {
     ]
   });
 
-  console.log("✅ Seed completed successfully! Ponda Municipal Council (PMC), Goa is live on CivicLens.");
+  console.log("✅ Seed completed successfully! Ponda Municipal Council (PMC), Goa is live on CityNova.");
 }
 
 main()

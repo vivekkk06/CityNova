@@ -1,4 +1,4 @@
-// This is your Prisma schema file for CivicLens
+// This is your Prisma schema file for CityNova
 // Configured with SQLite for zero-friction local execution, with easy switch to Postgres/PostGIS
 
 generator client {

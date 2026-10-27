@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       draft: structuredDraft,
-      source: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4o-mini' : 'CivicLens Smart Municipal Heuristic',
+      source: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4o-mini' : 'CityNova Smart Municipal Heuristic',
     });
   } catch (error) {
     console.error('Error generating AI draft:', error);

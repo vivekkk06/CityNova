@@ -1,14 +1,14 @@
-# CivicLens: Ponda Municipal Council (PMC), Goa
-### The Promise-to-Proof Municipal Governance & Transparency Ledger
+# CityNova: Autonomous Civic Intelligence & Governance Platform
+### Ponda Municipal Council (PMC), Goa (पोंडा नगरपालिका)
 **Enforcing the Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013 & Goa Municipalities Act, 1968**
 
-CivicLens is a production-grade, local-first civic reporting and governance ledger deployed for **Ponda Municipal Council (PMC), Goa (पोंडा नगरपालिका)**. It eliminates accountability gaps between citizens and municipal engineers through **The Promise-to-Proof Ledger**, **Two-Stage Geo-Gated Resolution Gates**, **Multimodal AI Intake**, and **Spatial GIS Deduplication**.
+CityNova is a production-grade, local-first civic reporting and governance ledger deployed for **Ponda Municipal Council (PMC), Goa**. It eliminates accountability gaps between citizens and municipal engineers through **The Promise-to-Proof Ledger**, **Two-Stage Geo-Gated Resolution Gates**, **Multimodal AI Intake**, and **Spatial GIS Deduplication**.
 
 ---
 
 ## 🏛️ Grounded in Ponda, Goa: Jurisdictions & Wards
 
-CivicLens models the real municipal wards of Ponda Municipal Council with precise GeoJSON boundary polygons:
+CityNova models the real municipal wards of Ponda Municipal Council with precise GeoJSON boundary polygons:
 
 | Ward Code | Ward Name & Localities | Jurisdiction Zone | Key Landmarks |
 |---|---|---|---|
@@ -42,12 +42,12 @@ Every reported issue is mapped directly to responsible Goan agencies with statut
 ### 1. Multimodal Intake & AI Structuring (`/report`)
 - **Voice Note Recording**: Citizens can record voice notes in Konkani, Marathi, or English. The browser Web Speech API transcribes live, and an audio file is preserved.
 - **Automated AI Drafting**: Parses natural speech into structured JSON containing title, category, urgency, suggested department, and legal Citizen Charter rights.
-- **Zero-Config Local Fallback**: Built-in municipal heuristic rule-engine runs completely offline without requiring third-party API keys, with optional OpenAI GPT-4o-mini / Whisper integration.
+- **Zero-Config Local Fallback**: Built-in CityNova municipal heuristic rule-engine runs completely offline without requiring third-party API keys, with optional OpenAI GPT-4o-mini / Whisper integration.
 
 ### 2. GIS Municipal Routing & 50m Spatial Deduplication
 - **Geofenced Ward Routing**: Point-in-Polygon ray-casting matches coordinates to Ponda Municipal Council Wards 1, 2, or 3.
 - **50-Meter Spatial Deduplication**: If an issue is placed within 50 meters of an active complaint in the same category, citizens are alerted and prompted to **"Upvote / Add Observation"**, preventing duplicate work orders.
-- **Dual Identifiers**: Emits immutable platform IDs (`CVL-2026-W03-0842`) alongside municipal legacy reference numbers (`PMC-PWD-8921`).
+- **Dual Identifiers**: Emits immutable platform IDs (`CTN-2026-W03-0842`) alongside municipal legacy reference numbers (`PMC-PWD-8921`).
 
 ### 3. The Promise-to-Proof Ledger (`/ticket/[id]`)
 - **Commitment Card**: Displays assigned officer (e.g. Datta Gaonkar, PWD Works Div XIV), public commitment date, and real-time SLA countdown.
@@ -69,12 +69,13 @@ Every reported issue is mapped directly to responsible Goan agencies with statut
 ### 5. Trust, Safety & Transparency Dashboard
 - **Citizen Privacy Filter**: Automatic data minimization masks citizen names (`R***n B****r`) and phone numbers (`+91-98****667`) on public ledgers.
 - **Zonal Command Matrix (`/admin`)**: Real-time SLA countdown surveillance and Chief Officer dispute escalation inbox.
+- **CityNova AI Copilot**: 24x7 municipal AI assistant with quick prompts for statutory SLAs, officer contacts, and tracking.
 
 ---
 
 ## 🚀 Quickstart (Zero-Setup Local SQLite Mode)
 
-CivicLens runs out-of-the-box using local SQLite and local filesystem storage with no external dependencies required.
+CityNova runs out-of-the-box using local SQLite and local filesystem storage with no external dependencies required.
 
 ```bash
 # 1. Install dependencies
@@ -103,7 +104,7 @@ For Docker deployments using PostgreSQL with PostGIS spatial extensions:
 docker compose up -d
 
 # Switch DATABASE_URL in .env:
-# DATABASE_URL="postgresql://civiclens:civiclens_secure_password@localhost:5433/civiclens_db?schema=public"
+# DATABASE_URL="postgresql://citynova:citynova_secure_password@localhost:5433/citynova_db?schema=public"
 
 # Push schema and seed PostgreSQL
 npx prisma db push
@@ -126,5 +127,5 @@ npx prisma db seed
 
 ## 📞 Emergency Control Room & Contacts
 - **Ponda Municipal Council Control Room**: `0832-2312148`
-- **Toll-Free Goa Citizen Helpline**: `1800-233-0832`
+- **Toll-Free Citizen Helpline**: `1913`
 - **PWD Khandepar Water Supply Emergency**: `0832-2314567`

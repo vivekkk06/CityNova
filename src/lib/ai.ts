@@ -145,7 +145,7 @@ export async function parseCivicIntakeDraft(rawText: string): Promise<AIStructur
   }
 
   try {
-    const prompt = `You are the CivicLens AI Governance Engine for Ponda Municipal Council (PMC), Goa, India.
+    const prompt = `You are the CityNova AI Civic Governance Engine for Ponda Municipal Council (PMC), Goa, India.
 Analyze the citizen's report and respond strictly in valid JSON matching this schema:
 {
   "title": "Concise, professional civic issue title in Ponda context",

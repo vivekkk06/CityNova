@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
           ticketId: newTicket.id,
           sourceLabel: 'AI Structured',
           action: 'AI_ANALYSIS_COMPLETED',
-          actorName: 'CivicLens AI Vision & NLP',
+          actorName: 'CityNova AI Vision & NLP',
           actorRole: 'Governance Engine',
           details: `Structured as ${category} (${urgency} urgency). Statutory citizen charter entitlement attached.`,
           timestamp: new Date(now.getTime() + 1000),
