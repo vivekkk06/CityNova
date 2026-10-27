@@ -1,5 +1,5 @@
-# CityNova: Autonomous Civic Intelligence & Governance Platform
-### Ponda Municipal Council (PMC), Goa (पोंडा नगरपालिका)
+# CityNova: Tranpsarent and interactive civic reporting and accountable governance Platform
+### Ponda Municipal Council (PMC), Goa
 **Enforcing the Goa (Right of Citizens to Time-Bound Delivery of Public Services) Act, 2013 & Goa Municipalities Act, 1968**
 
 CityNova is a production-grade, local-first civic reporting and governance ledger deployed for **Ponda Municipal Council (PMC), Goa**. It eliminates accountability gaps between citizens and municipal engineers through **The Promise-to-Proof Ledger**, **Two-Stage Geo-Gated Resolution Gates**, **Multimodal AI Intake**, and **Spatial GIS Deduplication**.
