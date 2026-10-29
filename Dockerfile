@@ -32,6 +32,7 @@ COPY . .
 
 # Configure Prisma provider for PostgreSQL during container build
 ARG PRISMA_PROVIDER=postgresql
+ENV DATABASE_URL="postgresql://citynova:citynova_secure_password@postgres:5432/citynova_db?schema=public"
 RUN if [ "$PRISMA_PROVIDER" = "postgresql" ]; then \
       sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma; \
     fi && npx prisma generate
