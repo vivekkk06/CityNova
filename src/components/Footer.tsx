@@ -201,13 +201,12 @@ export default function Footer() {
           onClick={() => setActiveModal(null)}
         >
           <div
-            className={`bg-white rounded-2xl w-full max-h-[88vh] overflow-y-auto shadow-2xl border border-slate-200 p-5 sm:p-7 space-y-6 text-slate-800 ${
-              activeModal === 'know-your-city'
+            className={`bg-white rounded-2xl w-full max-h-[88vh] overflow-y-auto shadow-2xl border border-slate-200 p-5 sm:p-7 space-y-6 text-slate-800 ${activeModal === 'know-your-city'
                 ? 'max-w-4xl'
                 : activeModal === 'know-your-rights'
-                ? 'max-w-3xl'
-                : 'max-w-2xl'
-            }`}
+                  ? 'max-w-3xl'
+                  : 'max-w-2xl'
+              }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
