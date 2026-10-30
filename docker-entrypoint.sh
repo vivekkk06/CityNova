@@ -26,20 +26,19 @@ if [ "$SEED_DB" = "true" ]; then
   SEEDED_COUNT=$(node -e "
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
-    prisma.ward.count()
+    prisma.city.count()
       .then(count => { console.log(count); process.exit(0); })
       .catch(() => { console.log(0); process.exit(0); });
   " 2>/dev/null || echo 0)
 
   if [ "$SEEDED_COUNT" = "0" ] || [ "$FORCE_SEED" = "true" ]; then
-    echo "==> Database requires seeding. Loading Ponda Municipal Council (PMC) wards, departments & initial tickets..."
+    echo "==> Database requires seeding. Loading Ponda city & initial tickets..."
     npx prisma db seed
     echo "==> Database seeded successfully."
   else
-    echo "==> Database already initialized with $SEEDED_COUNT wards. Skipping re-seed (set FORCE_SEED=true to force reset)."
+    echo "==> Database already initialized with $SEEDED_COUNT cities. Skipping re-seed (set FORCE_SEED=true to force reset)."
   fi
 fi
 
 echo "==> Launching CityNova Application on port ${PORT:-3000}..."
 exec "$@"
-

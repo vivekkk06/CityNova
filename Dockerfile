@@ -6,7 +6,7 @@
 # 1. Base Image: Node.js 22 Slim (Debian Bookworm)
 # Verified on Docker Hub: Official Node.js image with glibc and native OpenSSL
 # ------------------------------------------------------------------------------
-FROM node:22-bookworm-slim AS base
+FROM node:22-slim AS base
 WORKDIR /app
 
 # Install OpenSSL and curl (required by Prisma engine and healthchecks)
@@ -32,10 +32,11 @@ COPY . .
 
 # Configure Prisma provider for PostgreSQL during container build
 ARG PRISMA_PROVIDER=postgresql
-ENV DATABASE_URL="postgresql://citynova:citynova_secure_password@postgres:5432/citynova_db?schema=public"
+ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+ENV DATABASE_URL=$DATABASE_URL
 RUN if [ "$PRISMA_PROVIDER" = "postgresql" ]; then \
-      sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma; \
-    fi && npx prisma generate
+  sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma; \
+  fi && npx prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -75,4 +76,3 @@ EXPOSE 3000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["npm", "start"]
-

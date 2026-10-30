@@ -8,50 +8,33 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
     container_name: citynova-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-citynova}:${POSTGRES_PASSWORD:-citynova_secure_password}@postgres:5432/${POSTGRES_DB:-citynova_db}?schema=public
-      - SEED_DB=${SEED_DB:-true}
-      - FORCE_SEED=${FORCE_SEED:-false}
-      - STORAGE_DRIVER=${STORAGE_DRIVER:-local}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # MinIO / S3 configuration (used if STORAGE_DRIVER=s3)
-      - S3_ENDPOINT=http://minio:9000
-      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
-      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadminpassword}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-citynova-uploads}
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
     volumes:
-      # Persistent storage for citizen uploads (audio notes & incident photos)
+      # Persistent local storage for citizen uploads (audio notes & incident photos)
       - app_uploads:/app/public/uploads
     networks:
       - citynova-network
 
   # ==============================================================================
   # 2. PostgreSQL with PostGIS Spatial Extensions
-  # Verified on Docker Hub: postgis/postgis:16-3.4 (Available)
   # ==============================================================================
   postgres:
     image: postgis/postgis:16-3.4
     container_name: citynova-postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-citynova}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citynova_secure_password}
-      POSTGRES_DB: ${POSTGRES_DB:-citynova_db}
+    env_file:
+      - .env
     ports:
-      # Port 5433 on host maps to 5432 in container to avoid host port collisions
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -64,37 +47,12 @@ services:
     networks:
       - citynova-network
 
-  # ==============================================================================
-  # 3. MinIO S3-Compatible Media Storage (Optional)
-  # NOTE: Official 'minio/minio' is no longer hosted on Docker Hub (discontinued by upstream).
-  # ALTERNATIVE ON DOCKER HUB: 'coollabsio/minio:latest' is an active, verified
-  # community mirror maintained by Coolify with identical S3 API and web console.
-  # ==============================================================================
-  minio:
-    image: coollabsio/minio:latest
-    container_name: citynova-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadminpassword}
-    ports:
-      # High ports 9010/9011 to avoid collision with standard services
-      - "${MINIO_PORT:-9010}:9000"
-      - "${MINIO_CONSOLE_PORT:-9011}:9001"
-    volumes:
-      - miniodata:/data
-    networks:
-      - citynova-network
-
 # ==============================================================================
 # Volumes & Networks
 # ==============================================================================
 volumes:
   pgdata:
     name: citynova_pgdata
-  miniodata:
-    name: citynova_miniodata
   app_uploads:
     name: citynova_uploads
 
