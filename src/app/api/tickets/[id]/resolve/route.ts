@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateHaversineDistanceMeters } from '@/lib/gis';
+import { getAuthSession } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthSession(req);
+    if (!session?.user.cityId) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
+    if (session.user.role !== 'STAFF') return NextResponse.json({ error: 'Only approved staff accounts can submit resolution updates.' }, { status: 403 });
     const { id } = await params;
     const body = await req.json();
     const {
@@ -14,13 +18,11 @@ export async function PATCH(
       resolutionGpsLat,
       resolutionGpsLng,
       resolutionNotes,
-      officerName = 'Field Officer',
-      officerId,
       allowGpsOverride = false,
     } = body;
 
     const ticket = await prisma.ticket.findFirst({
-      where: { OR: [{ id }, { caseId: id }] },
+      where: { AND: [{ OR: [{ id }, { caseId: id }] }, { cityId: session.user.cityId }] },
     });
 
     if (!ticket) {
@@ -68,22 +70,7 @@ export async function PATCH(
         resolutionGpsLat: resolutionGpsLat ? parseFloat(resolutionGpsLat) : ticket.latitude,
         resolutionGpsLng: resolutionGpsLng ? parseFloat(resolutionGpsLng) : ticket.longitude,
         resolutionTimestamp: now,
-        resolutionNotes: resolutionNotes || 'Work completed per municipal engineering standard.',
-        assignedOfficerName: officerName,
-        assignedOfficerId: officerId || ticket.assignedOfficerId,
-      },
-    });
-
-    // Record in Provenance Audit Trail
-    await prisma.auditLog.create({
-      data: {
-        ticketId: ticket.id,
-        sourceLabel: 'Proof-of-Work Submitted',
-        action: 'PROVISIONAL_RESOLUTION',
-        actorName: officerName,
-        actorRole: 'Field Engineering Staff',
-        details: `Proof of Work uploaded with verified GPS on-site proximity (${distanceMeters}m delta). Status changed to PROVISIONALLY_RESOLVED. Two-stage resolution gate unlocked for citizen verification.`,
-        timestamp: now,
+        resolutionNotes: resolutionNotes || 'Resolution update submitted.',
       },
     });
 

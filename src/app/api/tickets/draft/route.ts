@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseCivicIntakeDraft } from '@/lib/ai';
+import { getAuthSession } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getAuthSession(req);
+    if (!session) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
+    if (session.user.role !== 'CITIZEN') return NextResponse.json({ error: 'Only Citizen accounts can create report drafts.' }, { status: 403 });
     const body = await req.json();
     const { text } = body;
 
@@ -18,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       draft: structuredDraft,
-      source: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4o-mini' : 'CityNova Smart Municipal Heuristic',
+      source: process.env.OPENAI_API_KEY ? 'OpenAI GPT-4o-mini' : 'CityNova Civic Classifier',
     });
   } catch (error) {
     console.error('Error generating AI draft:', error);

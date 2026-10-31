@@ -1,78 +1,48 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const totalTickets = await prisma.ticket.count();
-    const openTickets = await prisma.ticket.count({ where: { status: 'OPEN' } });
-    const inProgressTickets = await prisma.ticket.count({ where: { status: 'IN_PROGRESS' } });
-    const provisionallyResolved = await prisma.ticket.count({ where: { status: 'PROVISIONALLY_RESOLVED' } });
-    const verifiedResolved = await prisma.ticket.count({ where: { status: { in: ['RESOLVED', 'CLOSED'] } } });
-    const disputedTickets = await prisma.ticket.count({ where: { status: 'DISPUTED' } });
+    const session = await getAuthSession(request);
+    if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to view city statistics.' }, { status: 401 });
 
-    // Calculate SLA compliance (resolved before slaDeadline)
-    const allResolved = await prisma.ticket.findMany({
-      where: { status: { in: ['RESOLVED', 'CLOSED'] } },
-      select: { createdAt: true, updatedAt: true, slaDeadline: true },
-    });
+    const cityFilter = session.user.city.normalizedKey === 'ponda,goa,india'
+      ? { OR: [{ cityId: session.user.cityId }, { cityId: null }] }
+      : { cityId: session.user.cityId };
+    const where = (status?: string | { in: string[] }) => ({ ...cityFilter, ...(status ? { status } : {}) });
 
-    let slaMetCount = 0;
-    let totalResolutionTimeHours = 0;
+    const [total, open, inProgress, resolved, pendingApproval, disputed, completed] = await Promise.all([
+      prisma.ticket.count({ where: where() }),
+      prisma.ticket.count({ where: where('OPEN') }),
+      prisma.ticket.count({ where: where({ in: ['IN_PROGRESS', 'ASSIGNED'] }) }),
+      prisma.ticket.count({ where: where({ in: ['RESOLVED', 'CLOSED'] }) }),
+      prisma.ticket.count({ where: where('PROVISIONALLY_RESOLVED') }),
+      prisma.ticket.count({ where: where('DISPUTED') }),
+      prisma.ticket.findMany({ where: where({ in: ['RESOLVED', 'CLOSED'] }), select: { createdAt: true, updatedAt: true, slaDeadline: true } }),
+    ]);
 
-    for (const ticket of allResolved) {
-      if (ticket.updatedAt <= ticket.slaDeadline) {
-        slaMetCount++;
-      }
-      const durationHours = (ticket.updatedAt.getTime() - ticket.createdAt.getTime()) / (3600 * 1000);
-      totalResolutionTimeHours += durationHours;
-    }
-
-    const slaComplianceRate = allResolved.length > 0 ? Math.round((slaMetCount / allResolved.length) * 100) : 94;
-    const avgResolutionHours = allResolved.length > 0 ? (totalResolutionTimeHours / allResolved.length).toFixed(1) : '24.6';
-
-    const departments = await prisma.department.findMany({
-      include: {
-        _count: {
-          select: { tickets: true },
-        },
-      },
-    });
-
-    const wards = await prisma.ward.findMany({
-      include: {
-        _count: {
-          select: { tickets: true },
-        },
-      },
-    });
+    const onTime = completed.filter((ticket) => ticket.updatedAt <= ticket.slaDeadline);
+    const avgResolutionHours = completed.length
+      ? Number((completed.reduce((sum, ticket) => sum + (ticket.updatedAt.getTime() - ticket.createdAt.getTime()) / 3600000, 0) / completed.length).toFixed(1))
+      : null;
 
     return NextResponse.json({
       success: true,
       stats: {
-        total: totalTickets,
-        open: openTickets,
-        inProgress: inProgressTickets,
-        provisionallyResolved,
-        resolved: verifiedResolved,
-        disputed: disputedTickets,
-        slaComplianceRate,
+        city: session.user.city.name,
+        total,
+        open,
+        inProgress,
+        resolved,
+        pendingApproval,
+        disputed,
+        slaComplianceRate: completed.length ? Math.round(onTime.length / completed.length * 100) : null,
         avgResolutionHours,
-        departments: departments.map((d) => ({
-          id: d.id,
-          name: d.name,
-          code: d.code,
-          ticketCount: d._count.tickets,
-        })),
-        wards: wards.map((w) => ({
-          id: w.id,
-          name: w.name,
-          code: w.code,
-          ticketCount: w._count.tickets,
-        })),
       },
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    return NextResponse.json({ error: 'Failed to fetch governance statistics' }, { status: 500 });
+    console.error('Error fetching city statistics:', error);
+    return NextResponse.json({ error: 'Failed to fetch city statistics.' }, { status: 500 });
   }
 }

@@ -15,22 +15,32 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'CityNova | Next-Gen AI Civic Action & Municipal Governance Platform',
   description:
-    'CityNova is the official municipal civic action and transparent governance platform. Report potholes, waste dumps, water leakages, and streetlights with time-bound statutory SLA countdowns, live GIS ward maps, municipal officer directories, and cryptographic-grade photo proof of work.',
+    'CityNova is a civic issue reporting platform. Report potholes, waste dumps, water leakages, and streetlights, view reported issue locations on the city map, and track complaint resolution.',
   keywords: [
     'CityNova',
     'CityNova Civic Platform',
     'Municipal Civic Action',
     'Citizen Grievance Redressal',
-    'Ponda Municipal Council',
-    'Ward GIS Map',
-    'Ward Officer Directory',
-    'Time-Bound Public Services Act',
-    'Promise to Proof Ledger',
+    'Reported Issue Map',
+    'Public Grievance Docket',
     'Civic Technology',
   ],
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/citynova-icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
 };
 
 import { LanguageProvider } from '@/lib/i18n';
+import { AuthProvider } from '@/lib/auth-context';
 
 export default function RootLayout({
   children,
@@ -40,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-orange-100 selection:text-orange-900">
-        <LanguageProvider>{children}</LanguageProvider>
+        <AuthProvider><LanguageProvider>{children}</LanguageProvider></AuthProvider>
       </body>
     </html>
   );

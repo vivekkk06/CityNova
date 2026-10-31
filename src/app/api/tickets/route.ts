@@ -1,48 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import {
-  detectWardForCoordinates,
-  findDuplicateTicketsNearby,
-  generateCaseId,
-  generateLegacyGrievanceNumber,
-} from '@/lib/gis';
+import { findDuplicateTicketsNearby, generateCaseId } from '@/lib/gis';
 import { calculateSlaDeadline } from '@/lib/sla';
 import { sanitizeTicketForPublic } from '@/lib/privacy';
+import { getAuthSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getAuthSession(req);
+    if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to view city reports.' }, { status: 401 });
     const { searchParams } = new URL(req.url);
-    const wardId = searchParams.get('wardId');
-    const departmentId = searchParams.get('departmentId');
     const category = searchParams.get('category');
     const status = searchParams.get('status');
-    const isPublic = searchParams.get('isPublic') !== 'false';
 
-    const whereClause: Record<string, unknown> = {};
-    if (wardId && wardId !== 'all') whereClause.wardId = wardId;
-    if (departmentId && departmentId !== 'all') whereClause.departmentId = departmentId;
+    const whereClause: Prisma.TicketWhereInput = session.user.city.normalizedKey === 'ponda,goa,india'
+      ? { OR: [{ cityId: session.user.cityId }, { cityId: null }] }
+      : { cityId: session.user.cityId };
     if (category && category !== 'all') whereClause.category = category;
     if (status && status !== 'all') whereClause.status = status;
 
     const tickets = await prisma.ticket.findMany({
       where: whereClause,
       include: {
-        ward: true,
-        department: true,
-        _count: {
-          select: {
-            observations: true,
-            auditLogs: true,
-          },
-        },
+        city: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
 
-    const processedTickets = isPublic
-      ? tickets.map((t) => sanitizeTicketForPublic(t))
-      : tickets;
+    const processedTickets = tickets.map((t) => sanitizeTicketForPublic(t));
 
     return NextResponse.json({ success: true, tickets: processedTickets });
   } catch (error) {
@@ -53,18 +40,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getAuthSession(req);
+    if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to submit a report.' }, { status: 401 });
+    if (session.user.role !== 'CITIZEN') return NextResponse.json({ error: 'Only Citizen accounts can submit reports.' }, { status: 403 });
     const body = await req.json();
     const {
       title,
       description,
       category,
       urgency = 'MEDIUM',
-      plainLanguageRights,
       latitude,
       longitude,
       addressDescription,
-      citizenName,
-      citizenPhone,
       initialPhotoUrl,
       initialAudioUrl,
       bypassDuplicates = false,
@@ -79,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Spatial Deduplication Check (within 50 meters)
-    const nearbyDuplicates = await findDuplicateTicketsNearby(latitude, longitude, category, 50);
+    const nearbyDuplicates = await findDuplicateTicketsNearby(latitude, longitude, category, 50, session.user.cityId);
 
     if (checkDuplicatesOnly) {
       return NextResponse.json({
@@ -98,108 +85,45 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Automated GIS Municipal Routing (Ward & Department Detection)
-    const ward = await detectWardForCoordinates(latitude, longitude);
-
-    let department = await prisma.department.findFirst({
-      where: {
-        OR: [
-          { name: { contains: category } },
-          { description: { contains: category } },
-        ],
-      },
-    });
-
-    if (!department) {
-      // Map category to department
-      let deptCode = 'PUBLIC_WORKS';
-      if (category.includes('Garbage') || category.includes('Waste')) deptCode = 'SANITATION';
-      if (category.includes('Water') || category.includes('Pipe')) deptCode = 'WATER_SUPPLY';
-      if (category.includes('Streetlight') || category.includes('Light')) deptCode = 'STREET_LIGHTING';
-
-      department = await prisma.department.findUnique({
-        where: { code: deptCode },
-      });
-    }
-
-    if (!department) {
-      department = (await prisma.department.findFirst())!;
-    }
-
-    // 3. Generate Unique Identifiers & SLA Deadlines
-    const caseId = generateCaseId(ward.code);
-    const legacyGrievanceNumber = generateLegacyGrievanceNumber(department.code);
+    // Generate a city-independent case ID and generic estimate; no city authority data is assumed.
+    const caseId = generateCaseId();
     const now = new Date();
-    const slaDeadline = calculateSlaDeadline(
-      now,
-      department.slaHoursNormal,
-      department.slaHoursUrgent,
-      urgency
-    );
+    const slaDeadline = calculateSlaDeadline(now, 72, 24, urgency);
 
     // 4. Create Ticket Record
     const newTicket = await prisma.ticket.create({
       data: {
         caseId,
-        legacyGrievanceNumber,
         title,
         description: description || title,
         category,
         urgency,
-        plainLanguageRights:
-          plainLanguageRights ||
-          'Under the Municipal Citizen Charter, all grievances are logged with an immutable public SLA commitment.',
+        plainLanguageRights: 'Status updates are provided by the CityNova reporting workflow.',
         status: 'OPEN',
         latitude: parseFloat(latitude.toString()),
         longitude: parseFloat(longitude.toString()),
-        addressDescription: addressDescription || `${ward.name}, ${ward.zone}`,
-        wardId: ward.id,
-        departmentId: department.id,
-        citizenName: citizenName || 'Civic Citizen',
-        citizenPhone: citizenPhone || '+91-98000-00000',
+        addressDescription: addressDescription || session.user.city.name,
+        cityId: session.user.cityId,
+        reporterId: session.user.id,
+        citizenName: session.user.name,
+        citizenPhone: session.user.phone || '',
         publicCommitmentDate: now,
         slaDeadline,
         initialPhotoUrl,
         initialAudioUrl,
-        upvoteCount: 1,
+        statusHistory: {
+          create: {
+            actorId: session.user.id,
+            actorRole: session.user.role,
+            actorName: session.user.username ? `@${session.user.username}` : 'Citizen',
+            status: 'OPEN',
+            comment: 'Complaint registered and docketed.',
+          },
+        },
       },
       include: {
-        ward: true,
-        department: true,
+        city: true,
       },
-    });
-
-    // 5. Append Immutable Provenance Audit Trail (The Promise-to-Proof Ledger)
-    await prisma.auditLog.createMany({
-      data: [
-        {
-          ticketId: newTicket.id,
-          sourceLabel: 'Resident Input',
-          action: 'TICKET_CREATED',
-          actorName: citizenName || 'Resident',
-          actorRole: 'Citizen Resident',
-          details: `Grievance registered at [Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}]. Initial media assets secured.`,
-          timestamp: now,
-        },
-        {
-          ticketId: newTicket.id,
-          sourceLabel: 'AI Structured',
-          action: 'AI_ANALYSIS_COMPLETED',
-          actorName: 'CityNova AI Vision & NLP',
-          actorRole: 'Governance Engine',
-          details: `Structured as ${category} (${urgency} urgency). Statutory citizen charter entitlement attached.`,
-          timestamp: new Date(now.getTime() + 1000),
-        },
-        {
-          ticketId: newTicket.id,
-          sourceLabel: 'Official Update',
-          action: 'WARD_ROUTED',
-          actorName: 'Central GIS Dispatch',
-          actorRole: 'Automated Routing',
-          details: `Geofenced to ${ward.name} (${ward.zone}). Assigned to ${department.name} with SLA deadline set to ${slaDeadline.toLocaleDateString()} ${slaDeadline.toLocaleTimeString()}.`,
-          timestamp: new Date(now.getTime() + 2000),
-        },
-      ],
     });
 
     return NextResponse.json({

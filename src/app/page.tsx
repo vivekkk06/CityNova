@@ -1,40 +1,27 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
-  FilePlus2,
-  ShieldCheck,
-  Clock,
+  PlusCircle,
   MapPin,
-  CheckCircle2,
-  AlertTriangle,
-  Building,
-  TrendingUp,
-  Filter,
-  ArrowRight,
-  Eye,
-  ThumbsUp,
-  Sparkles,
+  HelpCircle,
   Search,
-  PhoneCall,
-  Mail,
-  UserCheck,
-  Building2,
+  Filter,
+  CheckCircle2,
+  Clock,
+  ShieldAlert,
+  FileText,
+  ArrowRight,
   Layers,
-  List,
-  Compass,
-  Scale,
-  Flag,
-  Copy,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import CitizensRightsSection from '@/components/CitizensRightsSection';
-import { formatSlaTimeRemaining } from '@/lib/sla';
 import { useLanguage } from '@/lib/i18n';
-import type { MapTicket, MapWard } from '@/components/CivicMap';
+import { useAuth } from '@/lib/auth-context';
 
 // Dynamically import Leaflet CivicMap to prevent SSR window issues
 const CivicMap = dynamic(() => import('@/components/CivicMap'), {
@@ -43,7 +30,7 @@ const CivicMap = dynamic(() => import('@/components/CivicMap'), {
     <div className="w-full h-96 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-200">
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
-        <span className="font-bold text-xs">Loading Municipal GIS Ward Map...</span>
+        <span className="font-bold text-xs">Loading reported issue map...</span>
       </div>
     </div>
   ),
@@ -51,96 +38,90 @@ const CivicMap = dynamic(() => import('@/components/CivicMap'), {
 
 export default function HomePage() {
   const { t } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
-  const [wards, setWards] = useState<MapWard[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Filters & Search
-  const [selectedWard, setSelectedWard] = useState<string>('all');
+  // In-memory interactive search & filter state
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // View Mode: 'MAP' | 'LEDGER' | 'OFFICIALS' | 'RIGHTS'
-  const [viewMode, setViewMode] = useState<'MAP' | 'LEDGER' | 'OFFICIALS' | 'RIGHTS'>('MAP');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const handleCopyLink = (caseId: string) => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(`${window.location.origin}/ticket/${caseId}`);
-      setCopiedId(caseId);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
-  };
-
-  const handleUpvote = (ticketId: string) => {
-    setTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, upvoteCount: (t.upvoteCount || 0) + 1 } : t))
-    );
-  };
 
   const fetchData = async () => {
     try {
-      const params = new URLSearchParams();
-      if (selectedWard !== 'all') params.append('wardId', selectedWard);
-      if (selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (selectedStatus !== 'all') params.append('status', selectedStatus);
-
-      const [ticketsRes, wardsRes, statsRes] = await Promise.all([
-        fetch(`/api/tickets?${params.toString()}`),
-        fetch('/api/wards'),
+      const [ticketsRes, statsRes] = await Promise.all([
+        fetch('/api/tickets'),
         fetch('/api/stats'),
       ]);
-
       const ticketsData = await ticketsRes.json();
-      const wardsData = await wardsRes.json();
       const statsData = await statsRes.json();
-
       if (ticketsData.tickets) setTickets(ticketsData.tickets);
-      if (wardsData.wards) setWards(wardsData.wards);
       if (statsData.stats) setStats(statsData.stats);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (authLoading) return;
     fetchData();
-  }, [selectedWard, selectedCategory, selectedStatus]);
+  }, [authLoading]);
 
-  // Handle URL hash navigation on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      if (hash === '#citizens-rights') setViewMode('RIGHTS');
-      else if (hash === '#ward-directory') setViewMode('OFFICIALS');
-      else if (hash === '#public-ledger') setViewMode('LEDGER');
-      else if (hash === '#city-map') setViewMode('MAP');
-    }
-  }, []);
+  // Filter tickets in memory for real-time map and list exploration
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      // Category filter
+      let matchesCat = true;
+      if (selectedCategory !== 'all') {
+        const cat = (ticket.category || '').toLowerCase();
+        if (selectedCategory === 'roads') {
+          matchesCat = cat.includes('road') || cat.includes('pothole');
+        } else if (selectedCategory === 'water') {
+          matchesCat = cat.includes('water') || cat.includes('leak') || cat.includes('pipe') || cat.includes('drain');
+        } else if (selectedCategory === 'sanitation') {
+          matchesCat = cat.includes('garbage') || cat.includes('waste') || cat.includes('sanitat');
+        } else if (selectedCategory === 'lights') {
+          matchesCat = cat.includes('light') || cat.includes('electric') || cat.includes('power');
+        }
+      }
 
-  const categories = [
-    'Pothole & Road Damage',
-    'Garbage & Waste Accumulation',
-    'Water Leakage / Pipe Burst',
-    'Streetlight Outage',
-    'Drainage & Sewer Overflow',
-  ];
+      // Status filter
+      let matchesStat = true;
+      if (selectedStatus === 'in_progress') {
+        matchesStat = ticket.status === 'IN_PROGRESS' || ticket.status === 'ASSIGNED' || ticket.status === 'OPEN';
+      } else if (selectedStatus === 'pending_approval') {
+        matchesStat = ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL';
+      } else if (selectedStatus === 'resolved') {
+        matchesStat = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
+      }
 
-  const filteredTickets = tickets.filter((t) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      t.title.toLowerCase().includes(q) ||
-      t.caseId.toLowerCase().includes(q) ||
-      t.category.toLowerCase().includes(q) ||
-      t.addressDescription.toLowerCase().includes(q) ||
-      (t.ward?.name && t.ward.name.toLowerCase().includes(q))
-    );
-  });
+      // Search query filter
+      let matchesQuery = true;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        matchesQuery =
+          (ticket.title && ticket.title.toLowerCase().includes(q)) ||
+          (ticket.caseId && ticket.caseId.toLowerCase().includes(q)) ||
+          (ticket.addressDescription && ticket.addressDescription.toLowerCase().includes(q)) ||
+          (ticket.category && ticket.category.toLowerCase().includes(q));
+      }
+
+      return matchesCat && matchesStat && matchesQuery;
+    });
+  }, [tickets, selectedCategory, selectedStatus, searchQuery]);
+
+  const hasActiveFilters = selectedCategory !== 'all' || selectedStatus !== 'all' || searchQuery.trim() !== '';
+
+  const clearFilters = () => {
+    setSelectedCategory('all');
+    setSelectedStatus('all');
+    setSearchQuery('');
+  };
+
+  if (authLoading) return null;
+
+  const cityName = user?.city?.name || 'your city';
+  const stateName = user?.state || user?.city?.state || '';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
@@ -148,605 +129,409 @@ export default function HomePage() {
 
       {/* NAGARIKA / CITYNOVA CIVIC HERO BANNER */}
       <section className="bg-gradient-to-b from-white via-slate-50/50 to-white border-b border-slate-200">
-        {/* Live Municipal Dispatch Ticker */}
-        <div className="bg-slate-900 text-slate-300 py-1.5 px-4 text-[11px] font-medium border-b border-slate-800 flex items-center justify-between overflow-hidden">
-          <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 truncate">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="font-bold text-amber-400 uppercase tracking-wider text-[10px]">
-                {t('hero_telemetry_label')}
-              </span>
-              <span className="text-slate-600">|</span>
-              <span className="text-slate-300 truncate">
-                {t('hero_telemetry_text')}
-              </span>
-            </div>
-            <div className="hidden md:flex items-center gap-3 shrink-0 text-slate-400 text-[10px]">
-              <span>Resolution Rate: <strong className="text-emerald-400 font-bold">96.4%</strong></span>
-              <span>&bull;</span>
-              <span>Avg Turnaround: <strong className="text-cyan-400 font-bold">32 hrs</strong></span>
-            </div>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-4 max-w-3xl">
-              {/* Official Tricolor Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold shadow-2xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {t('hero_tag')}
+                <span>
+                  Official Municipal Grievance Redressal &bull; <strong>{cityName}{stateName ? `, ${stateName}` : ''}</strong>
+                </span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                 {t('hero_title_part1')}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-600 to-emerald-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-600 to-teal-600">
                   {t('hero_title_accent')}
                 </span>{' '}
-                {t('hero_title_part2')}
+                in {cityName}
               </h1>
 
               <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
-                {t('hero_subtitle')}
+                {user?.role === 'AUTHORITY'
+                  ? `Review reported civic issues in ${cityName}, verify departmental repairs, and update grievance dockets.`
+                  : `Report local problems, track resolution milestones with verified photographic evidence, and follow each grievance through its Public Docket.`}
               </p>
-
-              {/* Quick Category Filter Tags */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mr-1">
-                  {t('quick_topics')}
-                </span>
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setViewMode('LEDGER');
-                    }}
-                    className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all cursor-pointer ${
-                      selectedCategory === cat
-                        ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-orange-300 hover:bg-orange-50/50'
-                    }`}
-                  >
-                    {cat.split(' ')[0]} {cat.includes('Water') ? 'Leak' : cat.includes('Road') ? 'Pothole' : ''}
-                  </button>
-                ))}
-                {selectedCategory !== 'all' && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('all')}
-                    className="text-xs text-orange-600 font-bold hover:underline ml-1 cursor-pointer"
-                  >
-                    {t('reset_filter')}
-                  </button>
-                )}
-              </div>
             </div>
 
-            {/* Quick CTAs */}
             <div className="flex flex-wrap sm:flex-col gap-3 shrink-0">
-              <Link
-                href="/report"
-                className="btn-saffron flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-105"
-              >
-                <FilePlus2 className="w-5 h-5" />
-                <span>{t('btn_report_problem')}</span>
-              </Link>
+              {user?.role !== 'AUTHORITY' && (
+                <Link
+                  href="/report"
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-105 border border-slate-700"
+                >
+                  <PlusCircle className="w-5 h-5 text-emerald-400" />
+                  <span>{t('btn_report_problem')}</span>
+                </Link>
+              )}
 
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('open_ai_civic_chat'))}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 hover:border-slate-400 text-xs font-bold transition-all shadow-xs hover:shadow cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-blue-600" />
+                <HelpCircle className="w-4 h-4 text-blue-600" />
                 <span>{t('btn_ask_copilot')}</span>
               </button>
+
+              <a
+                href="#city-map"
+                className="hidden sm:inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors text-center"
+              >
+                <MapPin className="w-3.5 h-3.5 text-orange-600" />
+                <span>Explore Map &bull; {filteredTickets.length} issues</span>
+              </a>
+            </div>
+          </div>
+
+          {/* CITIZEN PARTICIPATION LIFECYCLE BANNER */}
+          <div className="mt-8 pt-6 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs shrink-0 border border-blue-100">
+                1
+              </span>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Geotag &amp; Submit</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Snap a photo, add landmarks, and pinpoint exact coordinates on the map.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700 font-bold text-xs shrink-0 border border-amber-100">
+                2
+              </span>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Department Action</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Assigned to the responsible municipal department with SLA resolution tracking.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs shrink-0 border border-emerald-100">
+                3
+              </span>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Citizen Sign-Off</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Inspect after-repair photographic proof before verifying ticket closure.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 space-y-8">
-        {/* JANTRA & NAGARIKA PUBLIC LIVE METRICS */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-          <div className="govt-card p-4">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              {t('stats_total')}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {stats?.total ?? 8077}+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-12 space-y-8">
+        {/* COMPLAINT STATISTICS CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="govt-card p-4 sm:p-5 relative overflow-hidden border-t-4 border-t-blue-600">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                {t('stats_total')}
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <FileText className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
+              {stats?.total ?? '-'}
             </p>
             <span className="text-[11px] text-slate-500 font-medium mt-1 block">
               {t('stats_total_sub')}
             </span>
           </div>
 
-          <div className="govt-card p-4">
-            <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
-              {t('stats_active')}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 tracking-tight">
-              {stats?.inProgress ?? 7792}
+          <div className="govt-card p-4 sm:p-5 relative overflow-hidden border-t-4 border-t-amber-500">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
+                {t('stats_active')}
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-amber-600 tracking-tight mt-2">
+              {stats?.inProgress ?? '-'}
             </p>
             <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
               {t('stats_active_sub')}
             </span>
           </div>
 
-          <div className="govt-card p-4">
-            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-              {t('stats_resolved')}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight">
-              {stats?.resolved ?? 285}
+          <div className="govt-card p-4 sm:p-5 relative overflow-hidden border-t-4 border-t-emerald-600">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                {t('stats_resolved')}
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight mt-2">
+              {stats?.resolved ?? '-'}
             </p>
             <span className="text-[11px] text-emerald-700 font-semibold mt-1 block">
               {t('stats_resolved_sub')}
             </span>
           </div>
 
-          <div className="govt-card p-4">
-            <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block mb-1">
-              {t('stats_wards')}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {wards.length || 3} Wards
+          <div className="govt-card p-4 sm:p-5 relative overflow-hidden border-t-4 border-t-purple-600">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block">
+                Pending Approval
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
+              {stats?.pendingApproval ?? '-'}
             </p>
             <span className="text-[11px] text-purple-700 font-semibold mt-1 block">
-              {t('stats_wards_sub')}
-            </span>
-          </div>
-
-          <div className="govt-card p-4 col-span-2 md:col-span-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              {t('stats_sla')}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-blue-700 tracking-tight">
-              {stats?.slaComplianceRate ?? 96.4}%
-            </p>
-            <span className="text-[11px] text-slate-600 font-medium block mt-1">
-              {t('stats_sla_sub')}: {stats?.avgResolutionHours ?? 32}h
+              Awaiting citizen sign-off
             </span>
           </div>
         </div>
 
-        {/* CONTROLS & 4-TAB SECTION SWITCHER */}
-        <div className="govt-card p-4 space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* 4-in-1 View Switcher */}
-            <div className="flex flex-wrap items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setViewMode('MAP')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === 'MAP'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Compass className="w-4 h-4 text-orange-600" />
-                <span>{t('tab_map')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('LEDGER')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === 'LEDGER'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <List className="w-4 h-4 text-blue-600" />
-                <span>{t('tab_ledger')} ({filteredTickets.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('OFFICIALS')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === 'OFFICIALS'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span>{t('tab_officials')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('RIGHTS')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === 'RIGHTS'
-                    ? 'bg-white text-blue-900 shadow-xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Scale className="w-4 h-4 text-purple-600" />
-                <span>{t('tab_rights')}</span>
-              </button>
+        {/* INTERACTIVE MAP PRESENTATION & ISSUE DISCOVERY */}
+        <div id="city-map" className="govt-card p-4 sm:p-6 space-y-4 scroll-mt-20">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+            <div>
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-600 shrink-0" />
+                <span>Reported Issues &amp; Grievance Map in {cityName}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Each dot marks a reported complaint. Select a dot to open its Public Grievance Docket.
+              </p>
             </div>
 
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+            {/* Quick Map Legend */}
+            <div className="flex items-center gap-3 text-[11px] text-slate-600 shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
+              <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">Legend:</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> In Progress
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-600" /> Pending Sign-off
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> Resolved
+              </span>
+            </div>
+          </div>
+
+          {/* Issue Discovery Filters & Search */}
+          <div className="space-y-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder={t('filter_search_placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="text-xs py-2 pl-8 pr-3 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-orange-500 w-44 sm:w-56 font-medium"
+                  placeholder="Filter by issue title, landmark, or case ID..."
+                  className="w-full text-xs pl-9 pr-8 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600"
                 />
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <select
-                value={selectedWard}
-                onChange={(e) => setSelectedWard(e.target.value)}
-                className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-bold cursor-pointer"
-              >
-                <option value="all">{t('filter_all_wards')}</option>
-                {wards.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
-                  </option>
-                ))}
-              </select>
+              {/* Status Tabs */}
+              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shrink-0 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('all')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                    selectedStatus === 'all' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  All Statuses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('in_progress')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                    selectedStatus === 'in_progress' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Active Work
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('pending_approval')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                    selectedStatus === 'pending_approval' ? 'bg-purple-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Pending Sign-off
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('resolved')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
+                    selectedStatus === 'resolved' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Resolved
+                </button>
+              </div>
+            </div>
 
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium cursor-pointer"
-              >
-                <option value="all">{t('filter_all_categories')}</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+            {/* Category Chips & Filter Summary */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                  <Filter className="w-3 h-3" /> Categories:
+                </span>
+                {[
+                  { id: 'all', label: 'All Issues' },
+                  { id: 'roads', label: '🕳️ Roads & Potholes' },
+                  { id: 'water', label: '💧 Water & Drainage' },
+                  { id: 'sanitation', label: '🗑️ Garbage & Sanitation' },
+                  { id: 'lights', label: '💡 Streetlights' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      selectedCategory === cat.id
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
                 ))}
-              </select>
+              </div>
 
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium cursor-pointer"
-              >
-                <option value="all">{t('filter_all_status')}</option>
-                <option value="OPEN">Open (Urgent)</option>
-                <option value="IN_PROGRESS">In Progress (कार्य जारी)</option>
-                <option value="PROVISIONALLY_RESOLVED">Pending Citizen Sign-off</option>
-                <option value="RESOLVED">Verified Closed (समाधान)</option>
-              </select>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs text-orange-600 hover:text-orange-800 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* TAB 1: INTERACTIVE GIS WARD MAP */}
-        {viewMode === 'MAP' && (
-          <div id="city-map" className="govt-card p-4 sm:p-5 space-y-3 scroll-mt-20">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Interactive GIS Map */}
+          <div className="h-[480px] sm:h-[540px] w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner relative">
+            <CivicMap
+              tickets={filteredTickets}
+              center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}
+              zoom={user?.city ? 14 : 5}
+            />
+          </div>
+
+          {/* RECENT GRIEVANCE DOCKETS DISCOVERY GRID */}
+          <div className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-orange-600" />
-                  <span>Municipal Ward GIS Layer &amp; Live Incident Map</span>
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Terracotta cluster bubbles depict the total report volume from every corner of Ponda city. Click any ward to call the Nodal Officer.
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Recent Grievance Dockets in {cityName} ({filteredTickets.length})
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Select any complaint docket to view timeline, photos, and resolution proof.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-600 font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-700 animate-pulse"></span>
-                <span>Nagarika Ward Clusters Active</span>
-              </div>
-            </div>
-
-            <div className="h-[480px] sm:h-[540px] w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner">
-              <CivicMap
-                tickets={filteredTickets}
-                wards={wards}
-                activeWardId={selectedWard !== 'all' ? selectedWard : undefined}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: PROMISE-TO-PROOF PUBLIC LEDGER WITH PHOTO COMPARISONS & COMMUNITY REVIEWS */}
-        {viewMode === 'LEDGER' && (
-          <div id="public-ledger" className="space-y-4 scroll-mt-20">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                  <span>Public Promise-to-Proof Grievance Ledger &bull; सार्वजनिक लेखा बही</span>
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Every issue is logged publicly with statutory SLA clock, community verification, and before/after photo evidence.
-                </p>
-              </div>
-              <span className="text-xs font-bold px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 shadow-2xs">
-                {filteredTickets.length} Ledger Dockets Found
-              </span>
+              <Link
+                href="/posts"
+                className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 group"
+              >
+                <span>View Community Posts</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
 
             {filteredTickets.length === 0 ? (
-              <div className="govt-card p-12 text-center text-slate-500 space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-                <h3 className="font-bold text-slate-800">No Complaints Match Your Filter</h3>
-                <p className="text-xs">All civic services in this category are currently functioning normally.</p>
+              <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <p className="text-sm font-bold text-slate-700">No reported complaints match your filters.</p>
+                <p className="text-xs text-slate-500">Try adjusting your search keyword, category, or status filter.</p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredTickets.map((ticket) => {
-                  const sla = formatSlaTimeRemaining(ticket.slaDeadline);
-                  const isClosed = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
-                  const isPendingCheck = ticket.status === 'PROVISIONALLY_RESOLVED';
-                  const photoUrl = ticket.resolutionPhotoUrl || ticket.initialPhotoUrl;
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {filteredTickets.slice(0, 6).map((ticket) => {
+                  const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
+                  const isPending = ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL';
 
                   return (
-                    <div
-                      key={ticket.id}
-                      className="govt-card p-5 flex flex-col justify-between space-y-4 hover:border-orange-300 transition-all text-left"
+                    <Link
+                      key={ticket.id || ticket.caseId}
+                      href={`/ticket/${ticket.caseId}`}
+                      className="group p-4 rounded-xl bg-white border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between"
                     >
-                      <div className="space-y-3">
-                        {/* Header: Case ID and Status */}
-                        <div className="flex items-center justify-between">
-                          <Link
-                            href={`/ticket/${ticket.caseId}`}
-                            className="text-xs font-mono font-black text-blue-700 hover:underline"
-                          >
-                            {ticket.caseId}
-                          </Link>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 truncate">
+                            {ticket.category || 'General Civic'}
+                          </span>
+
                           <span
-                            className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border ${
-                              isClosed
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                : isPendingCheck
-                                ? 'bg-purple-100 text-purple-800 border-purple-300 animate-pulse'
-                                : ticket.status === 'IN_PROGRESS'
-                                ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                : 'bg-red-100 text-red-800 border-red-300'
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              isResolved
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : isPending
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
                             }`}
                           >
-                            {ticket.status.replace(/_/g, ' ')}
+                            {isResolved ? 'Resolved' : isPending ? 'Pending Sign-off' : 'In Progress'}
                           </span>
                         </div>
 
-                        {/* Title & Category */}
-                        <div>
-                          <h3 className="text-sm font-extrabold text-slate-900 line-clamp-2 hover:text-orange-600 transition-colors">
-                            <Link href={`/ticket/${ticket.caseId}`}>{ticket.title}</Link>
-                          </h3>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1">
-                            <span className="font-bold text-slate-700">{ticket.category}</span>
-                            <span>&bull;</span>
-                            <span>{ticket.ward?.name || 'Central Ward'}</span>
-                          </div>
-                        </div>
+                        <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
+                          {ticket.title}
+                        </h4>
 
-                        {/* Photo Thumbnail if present */}
-                        {photoUrl && (
-                          <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                            <img
-                              src={photoUrl}
-                              alt="Grievance photograph"
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                            {isClosed ? (
-                              <div className="absolute bottom-2 left-2 bg-emerald-800/90 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
-                                ✅ Repaired Photo Proof
-                              </div>
-                            ) : (
-                              <div className="absolute bottom-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
-                                📸 Citizen Photo
-                              </div>
-                            )}
-                          </div>
+                        {ticket.addressDescription && (
+                          <p className="text-[11px] text-slate-500 flex items-center gap-1 line-clamp-1">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{ticket.addressDescription}</span>
+                          </p>
                         )}
-
-                        {/* Simple Info Row */}
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-600 font-medium">{t('reported_by')}</span>
-                            <strong className="text-slate-900 font-mono font-bold">{ticket.citizenName}</strong>
-                          </div>
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-600 font-medium">{t('sla_guarantee')}</span>
-                            <span className={`px-2 py-0.5 rounded font-extrabold ${sla.badgeClass}`}>
-                              {isClosed ? 'SLA Met & Verified' : sla.text}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Community Proof Row: Genuine Confirmations + Copy Link + Flag */}
-                        <div className="flex items-center justify-between text-[11px] pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleUpvote(ticket.id)}
-                            className="inline-flex items-center gap-1.5 text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 font-bold transition-transform active:scale-95 cursor-pointer shadow-2xs"
-                            title="Click to confirm and upvote this civic issue"
-                          >
-                            <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{ticket.upvoteCount || 1} {t('confirmed_genuine')}</span>
-                          </button>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleCopyLink(ticket.caseId)}
-                              className="inline-flex items-center gap-1 text-slate-600 hover:text-blue-700 font-bold p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
-                              title="Copy link to this docket"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                              <span className="text-[10px]">{copiedId === ticket.caseId ? t('copied_toast') : t('share_docket')}</span>
-                            </button>
-
-                            <Link
-                              href={`/ticket/${ticket.caseId}`}
-                              className="inline-flex items-center gap-1 text-slate-400 hover:text-red-700 font-medium p-1 rounded hover:bg-slate-100 transition-colors"
-                              title="Report discrepancy"
-                            >
-                              <Flag className="w-3 h-3" />
-                            </Link>
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Footer: Google Maps link + Inspect Docket Button */}
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${ticket.latitude},${ticket.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline"
-                          title="Open coordinates in Google Maps"
-                        >
-                          <MapPin className="w-3.5 h-3.5 text-red-600" />
-                          <span>Google Maps ↗</span>
-                        </a>
-
-                        <Link
-                          href={`/ticket/${ticket.caseId}`}
-                          className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-700 hover:underline"
-                        >
-                          <span>{t('inspect_full_docket')}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <span className="font-mono text-slate-400 text-[10px]">#{ticket.caseId}</span>
+                        <span className="font-bold text-blue-700 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">
+                          View Docket &rarr;
+                        </span>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
             )}
           </div>
-        )}
-
-        {/* TAB 3: WARD OFFICIALS & CONTACTS DIRECTORY */}
-        {viewMode === 'OFFICIALS' && (
-          <div id="ward-directory" className="space-y-4 scroll-mt-20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-orange-600" />
-                  <span>Municipal Ward Officers Directory &bull; वार्ड व अधिकारी सूची</span>
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Official contact information for Junior Engineers, Health Inspectors, and Chief Officers across Ponda.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {wards.map((ward) => (
-                <div key={ward.id} className="govt-card p-5 space-y-4 border-2 border-slate-200 text-left">
-                  <div className="border-b border-slate-100 pb-3">
-                    <span className="text-[10px] font-mono font-bold text-orange-600 uppercase tracking-wider block">
-                      {ward.code} &bull; {ward.zone}
-                    </span>
-                    <h3 className="text-base font-black text-slate-900 mt-1">
-                      {ward.name}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-2.5 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-bold block">
-                        Assigned Ward Nodal Officer
-                      </span>
-                      <strong className="text-slate-900 text-sm font-bold block mt-0.5">
-                        {ward.officerName || 'Er. Pradeep Naik (Chief Officer)'}
-                      </strong>
-                    </div>
-
-                    <div className="pt-2 flex flex-col gap-2">
-                      <a
-                        href={`tel:${ward.officerPhone || '08322312148'}`}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-xs transition-colors"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5" />
-                        <span>Call Officer: {ward.officerPhone || '0832-2312148'}</span>
-                      </a>
-
-                      <a
-                        href={`mailto:${ward.officerEmail || 'grievance.pmc@goa.gov.in'}`}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-xs transition-colors"
-                      >
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>Email Officer</span>
-                      </a>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-                      <div className="flex justify-between">
-                        <span>24x7 Ward Control Line:</span>
-                        <strong className="text-slate-900">{ward.emergencyContact || '1913'}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Active Grievances:</span>
-                        <strong className="text-orange-600">{ward.stats?.total || 12} Cases</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/report?ward=${ward.id}`}
-                    className="block text-center py-2.5 px-3 bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 rounded-xl text-xs font-bold transition-colors"
-                  >
-                    + File Complaint in {ward.code}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: CITIZENS' LEGAL RIGHTS & SLA CHARTER */}
-        {viewMode === 'RIGHTS' && <CitizensRightsSection />}
-
-        {/* ALWAYS VISIBLE CITIZENS' RIGHTS COMPONENT AT BOTTOM (Point 6 of Hackathon Spec) */}
-        {viewMode !== 'RIGHTS' && <CitizensRightsSection />}
-      </main>
-
-      {/* CITYNOVA STICKY BOTTOM REPORT BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 p-3 sm:p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-xl flex justify-center">
-        <div className="max-w-4xl w-full flex items-center justify-between gap-3">
-          <div className="hidden sm:block">
-            <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              CityNova Civic Operating System &bull; Ponda Municipal Council
-            </span>
-            <span className="text-[11px] text-slate-500 block">
-              100% Guaranteed SLA under Goa Right to Public Services Act 2013
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('open_ai_civic_chat'))}
-              className="px-4 py-2.5 bg-blue-50 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors shadow-2xs cursor-pointer"
-            >
-              🤖 Ask Copilot
-            </button>
-
-            <Link
-              href="/report"
-              className="flex-1 sm:flex-initial btn-saffron text-center px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
-            >
-              <FilePlus2 className="w-4 h-4" />
-              <span>+ Report Civic Problem Now</span>
-            </Link>
-          </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

@@ -1,56 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuthSession } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthSession(req);
+    if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     const { id } = await params;
     const body = await req.json();
-    const { action, disputeReason, disputePhotoUrl, citizenName } = body;
+    const { action, disputeReason } = body;
 
     const ticket = await prisma.ticket.findFirst({
-      where: { OR: [{ id }, { caseId: id }] },
-      include: { ward: true },
+      where: {
+        AND: [
+          { OR: [{ id }, { caseId: id }] },
+          session.user.city.normalizedKey === 'ponda,goa,india'
+            ? { OR: [{ cityId: session.user.cityId }, { cityId: null }] }
+            : { cityId: session.user.cityId },
+        ],
+      },
     });
 
     if (!ticket) {
       return NextResponse.json({ error: 'Civic ticket not found' }, { status: 404 });
     }
 
-    const now = new Date();
-    const actor = citizenName || ticket.citizenName || 'Resident Citizen';
+    if (ticket.reporterId !== session.user.id) {
+      return NextResponse.json({ error: 'Only the account that reported this complaint can update its resolution review.' }, { status: 403 });
+    }
 
     if (action === 'VERIFY') {
-      const updatedTicket = await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: {
-          status: 'RESOLVED',
-          escalatedToSupervisor: false,
-        },
-      });
-
-      await prisma.auditLog.create({
-        data: {
-          ticketId: ticket.id,
-          sourceLabel: 'Citizen Verified',
-          action: 'CLOSED',
-          actorName: actor,
-          actorRole: 'Citizen Resident',
-          details: 'Citizen inspected the location, verified resolution quality, and signed off. Permanently closed into the transparency ledger.',
-          timestamp: now,
-        },
-      });
+      if (ticket.status !== 'PROVISIONALLY_RESOLVED') {
+        return NextResponse.json({ error: 'Only complaints awaiting citizen sign-off can be closed.' }, { status: 409 });
+      }
+      const [updatedTicket] = await prisma.$transaction([
+        prisma.ticket.update({ where: { id: ticket.id }, data: { status: 'CLOSED' } }),
+        prisma.ticketStatusHistory.create({
+          data: {
+            ticketId: ticket.id,
+            actorId: session.user.id,
+            actorRole: session.user.role,
+            actorName: session.user.username ? `@${session.user.username}` : 'Citizen',
+            status: 'CLOSED',
+            comment: 'Citizen signed off after reviewing the repair proof.',
+          },
+        }),
+      ]);
 
       return NextResponse.json({
         success: true,
         ticket: updatedTicket,
-        message: 'Resolution confirmed and verified. Ticket permanently closed.',
+        message: 'Resolution signed off. Complaint closed.',
       });
     }
 
     if (action === 'DISPUTE') {
+      if (ticket.status !== 'PROVISIONALLY_RESOLVED') {
+        return NextResponse.json({ error: 'Only complaints awaiting citizen sign-off can be escalated.' }, { status: 409 });
+      }
       if (!disputeReason || disputeReason.trim().length === 0) {
         return NextResponse.json(
           { error: 'A clear explanation is required to dispute a resolution.' },
@@ -58,32 +68,44 @@ export async function PATCH(
         );
       }
 
-      const updatedTicket = await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: {
-          status: 'DISPUTED',
-          escalatedToSupervisor: true,
+      const previousResolutionPhoto = ticket.resolutionPhotoUrl;
+      const [updatedTicket] = await prisma.$transaction([
+        prisma.ticket.update({
+          where: { id: ticket.id },
+          data: {
+          status: 'IN_PROGRESS',
           disputeReason: disputeReason.trim(),
-          disputePhotoUrl: disputePhotoUrl || null,
-        },
-      });
+          disputePhotoUrl: null,
+          resolutionPhotoUrl: null,
+          resolutionGpsLat: null,
+          resolutionGpsLng: null,
+          resolutionTimestamp: null,
+          resolutionNotes: null,
+          },
+        }),
+        prisma.ticketStatusHistory.create({
+          data: {
+            ticketId: ticket.id,
+            actorId: session.user.id,
+            actorRole: session.user.role,
+            actorName: session.user.username ? `@${session.user.username}` : 'Citizen',
+            status: 'IN_PROGRESS',
+            comment: disputeReason.trim(),
+          },
+        }),
+      ]);
 
-      await prisma.auditLog.create({
-        data: {
-          ticketId: ticket.id,
-          sourceLabel: 'Citizen Disputed',
-          action: 'DISPUTED',
-          actorName: actor,
-          actorRole: 'Citizen Resident',
-          details: `Resolution rejected by citizen: "${disputeReason.trim()}". High-priority escalation dispatched to Zonal Supervisor (${ticket.ward.officerName}).`,
-          timestamp: now,
-        },
-      });
+      if (previousResolutionPhoto?.startsWith('/uploads/')) {
+        const { deleteUploadedFile } = await import('@/lib/storage');
+        await deleteUploadedFile(previousResolutionPhoto).catch((error) => {
+          console.error('Could not remove rejected after-repair image:', error);
+        });
+      }
 
       return NextResponse.json({
         success: true,
         ticket: updatedTicket,
-        message: 'Dispute recorded. Case has been escalated to Zonal Supervisor.',
+        message: 'Complaint returned to In Progress and the after-repair proof was removed.',
       });
     }
 

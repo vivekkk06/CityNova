@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { History, CheckCircle2, MapPin, ArrowRight, ShieldCheck } from 'lucide-react';
+import { History, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface CivicMemoryTicket {
   id: string;
@@ -11,7 +11,6 @@ interface CivicMemoryTicket {
   category: string;
   status: string;
   distanceMeters: number;
-  assignedOfficerName?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -32,7 +31,7 @@ export default function CivicMemorySection({ pastFixes }: CivicMemorySectionProp
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>Civic Memory &amp; Past Ward History</span>
+              <span>Nearby Past Reports</span>
               <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 स्थानिक इतिहास
               </span>

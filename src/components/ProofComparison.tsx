@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   FileCheck,
   XCircle,
-  Upload,
 } from 'lucide-react';
 
 interface ProofComparisonProps {
@@ -24,9 +23,8 @@ interface ProofComparisonProps {
   resolutionNotes?: string | null;
   status: string;
   disputeReason?: string | null;
-  disputePhotoUrl?: string | null;
   onVerify?: () => Promise<void>;
-  onDispute?: (reason: string, photoUrl?: string) => Promise<void>;
+  onDispute?: (reason: string) => Promise<void>;
   isCitizenUser?: boolean;
 }
 
@@ -40,14 +38,12 @@ export default function ProofComparison({
   resolutionNotes,
   status,
   disputeReason,
-  disputePhotoUrl,
   onVerify,
   onDispute,
   isCitizenUser = true,
 }: ProofComparisonProps) {
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeInput, setDisputeInput] = useState('');
-  const [disputeFile, setDisputeFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isProvisionallyResolved = status === 'PROVISIONALLY_RESOLVED';
@@ -60,17 +56,8 @@ export default function ProofComparison({
 
     setIsSubmitting(true);
     try {
-      let uploadedPhotoUrl = '';
-      if (disputeFile) {
-        const formData = new FormData();
-        formData.append('file', disputeFile);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.url) uploadedPhotoUrl = data.url;
-      }
-
       if (onDispute) {
-        await onDispute(disputeInput, uploadedPhotoUrl);
+        await onDispute(disputeInput);
       }
       setShowDisputeModal(false);
     } catch (err) {
@@ -108,7 +95,7 @@ export default function ProofComparison({
               Citizen Inspected & Verified (सत्यापित समाधान)
             </span>
           )}
-          {isDisputed && (
+          {(isDisputed || (status === 'IN_PROGRESS' && disputeReason)) && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
               <AlertTriangle className="w-3.5 h-3.5" />
               Escalated to Zonal Supervisor (पुनः जाँच हेतु प्रेषित)
@@ -205,34 +192,22 @@ export default function ProofComparison({
 
           {resolutionNotes && (
             <p className="text-slate-700 text-xs italic bg-white p-2.5 rounded-lg border border-slate-200">
-              <strong>Ward Staff Notes:</strong> &ldquo;{resolutionNotes}&rdquo;
+              <strong>Resolution note:</strong> &ldquo;{resolutionNotes}&rdquo;
             </p>
           )}
         </div>
       )}
 
       {/* Dispute Callout if ticket is disputed */}
-      {isDisputed && disputeReason && (
+      {disputeReason && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs space-y-2">
           <div className="flex items-center gap-2 text-red-800 font-bold">
             <AlertTriangle className="w-4 h-4" />
-            <span>Citizen Dispute Escalated to Zonal Supervisor</span>
+            <span>Citizen Escalation · Complaint Returned to In Progress</span>
           </div>
           <p className="text-slate-800 italic bg-white p-3 rounded-lg border border-red-200">
             &ldquo;{disputeReason}&rdquo;
           </p>
-          {disputePhotoUrl && (
-            <div className="mt-2">
-              <span className="text-[11px] font-semibold text-slate-600 block mb-1">
-                Citizen Dispute Evidence Photo:
-              </span>
-              <img
-                src={disputePhotoUrl}
-                alt="Dispute evidence"
-                className="w-48 h-32 object-cover rounded-lg border border-red-300"
-              />
-            </div>
-          )}
         </div>
       )}
 
@@ -245,7 +220,7 @@ export default function ProofComparison({
               <span>Citizen Sign-Off Required &bull; आपका सत्यापन आवश्यक है</span>
             </h4>
             <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-              Municipal field staff has submitted the completion photo above. As the reporting citizen,
+              A completion photo has been added to this complaint. As the reporting citizen,
               you have the sovereign authority to inspect the work and confirm resolution:
             </p>
           </div>
@@ -256,7 +231,7 @@ export default function ProofComparison({
               className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all hover:scale-[1.02] cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Verify & Close Ticket &bull; काम पूरा हुआ (सत्यापित करें)</span>
+              <span>Sign Off</span>
             </button>
 
             <button
@@ -288,7 +263,7 @@ export default function ProofComparison({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Please explain why the repair is inadequate. Your dispute will reopen the ticket and escalate it directly to the Zonal Supervisor for executive audit.
+              Explain why the repair is inadequate. The complaint will return to In Progress and the after-repair photo will be removed.
             </p>
 
             <form onSubmit={handleDisputeSubmit} className="space-y-4">
@@ -306,18 +281,6 @@ export default function ProofComparison({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Attach Photo Evidence (Optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setDisputeFile(e.target.files?.[0] || null)}
-                  className="text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 cursor-pointer"
-                />
-              </div>
-
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -331,7 +294,7 @@ export default function ProofComparison({
                   disabled={isSubmitting || !disputeInput.trim()}
                   className="px-4 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg cursor-pointer"
                 >
-                  {isSubmitting ? 'Escalating...' : 'Submit Dispute to Supervisor'}
+                  {isSubmitting ? 'Escalating...' : 'Escalate & Return to In Progress'}
                 </button>
               </div>
             </form>

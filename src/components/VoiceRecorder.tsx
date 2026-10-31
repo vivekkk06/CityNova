@@ -146,7 +146,7 @@ export default function VoiceRecorder({
               Voice Note Recording &bull; ऑडिओ नोंदणी
             </h4>
             <p className="text-[11px] text-slate-500">
-              Speak in English, Hindi (हिंदी), or Konkani (कोंकणी). Speech is automatically transcribed into the box below.
+              Speak in English or Hindi (हिंदी). Speech is automatically transcribed into the box below.
             </p>
           </div>
         </div>

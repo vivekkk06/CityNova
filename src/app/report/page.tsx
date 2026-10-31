@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -13,74 +13,26 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
-  ThumbsUp,
   Scale,
   ShieldCheck,
   Clock,
   Sparkles,
-  Phone,
   User,
-  Building2,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import { useLanguage } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth-context';
 
 const CivicMap = dynamic(() => import('@/components/CivicMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-72 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-xs">
-      Loading Google Maps GIS Layer...
+      Loading city map...
     </div>
   ),
 });
-
-interface CityAreaOption {
-  id: string;
-  name: string;
-  nameHi: string;
-  nameKok: string;
-  lat: number;
-  lng: number;
-}
-
-const CITY_AREAS: CityAreaOption[] = [
-  {
-    id: 'ward-01',
-    name: 'Ward 1 - Upper Bazar & Sadar Heritage (Central Market)',
-    nameHi: 'वार्ड 1 - अपर बाज़ार एवं सदर हेरिटेज (केंद्रीय बाज़ार)',
-    nameKok: 'वॉर्ड 1 - अपर बाझार आनी सादार (मध्यवर्ती बाजार)',
-    lat: 15.4025,
-    lng: 74.0135,
-  },
-  {
-    id: 'ward-02',
-    name: 'Ward 2 - Tisk & Khadpabandh (Kranti Maidan & Residential)',
-    nameHi: 'वार्ड 2 - तिस्क एवं खडपाबांध (क्रांति मैदान व आवासीय)',
-    nameKok: 'वॉर्ड 2 - तिस्क आनी खडपाबांध (क्रांती मैदान)',
-    lat: 15.4085,
-    lng: 74.018,
-  },
-  {
-    id: 'ward-03',
-    name: 'Ward 3 - Curti & Khandepar (Industrial & Highway Corridor)',
-    nameHi: 'वार्ड 3 - कुर्ति एवं खांडेपार (औद्योगिक व हाईवे)',
-    nameKok: 'वॉर्ड 3 - कुर्टी आनी खांडेपार (हायवे कॉरिडोअर)',
-    lat: 15.415,
-    lng: 74.025,
-  },
-  {
-    id: 'ward-central',
-    name: 'Ponda Municipal Core / Other Area',
-    nameHi: 'पोंडा नगर पालिका क्षेत्र / अन्य क्षेत्र',
-    nameKok: 'पोंडा पालिका क्षेत्र / हेर विभाग',
-    lat: 15.4026,
-    lng: 74.0151,
-  },
-];
 
 const CATEGORIES = [
   {
@@ -130,6 +82,8 @@ const CATEGORIES = [
 export default function ReportPage() {
   const router = useRouter();
   const { language } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
+
 
   // Problem Form State
   const [category, setCategory] = useState<string>('Pothole & Road Damage');
@@ -139,20 +93,24 @@ export default function ReportPage() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   // City Location State
-  const [selectedAreaId, setSelectedAreaId] = useState<string>('ward-01');
-  const [streetAddress, setStreetAddress] = useState<string>('Near PMC Municipal Building, Upper Bazar');
-  const [coordinates, setCoordinates] = useState<[number, number]>([15.4025, 74.0135]);
+  const [streetAddress, setStreetAddress] = useState<string>('');
+  const [coordinates, setCoordinates] = useState<[number, number]>([20.5937, 78.9629]);
+  const [hasPickedMapLocation, setHasPickedMapLocation] = useState(false);
   const [isGpsLoading, setIsGpsLoading] = useState<boolean>(false);
-  const [showMapPicker, setShowMapPicker] = useState<boolean>(false);
 
-  // Citizen Details State
-  const [citizenName, setCitizenName] = useState<string>('Rohan Borkar');
-  const [citizenPhone, setCitizenPhone] = useState<string>('+91-98221-55667');
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [duplicateWarning, setDuplicateWarning] = useState<any[] | null>(null);
   const [submittedCaseId, setSubmittedCaseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.city) setCoordinates([user.city.centerLat, user.city.centerLng]);
+  }, [user?.city?.id, user?.city?.centerLat, user?.city?.centerLng]);
+
+  useEffect(() => {
+    if (user?.role === 'AUTHORITY') router.replace('/');
+  }, [user?.role, router]);
 
   // Photo handlers
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,15 +130,6 @@ export default function ReportPage() {
   const handleVoiceTranscript = (transcript: string, audio?: File) => {
     setDescription((prev) => (prev ? `${prev} ${transcript}` : transcript));
     if (audio) setAudioFile(audio);
-  };
-
-  // Area Selection handler
-  const handleAreaChange = (areaId: string) => {
-    setSelectedAreaId(areaId);
-    const found = CITY_AREAS.find((a) => a.id === areaId);
-    if (found) {
-      setCoordinates([found.lat, found.lng]);
-    }
   };
 
   // 1-Tap GPS Locate Handler
@@ -206,7 +155,7 @@ export default function ReportPage() {
       (err) => {
         setIsGpsLoading(false);
         console.warn('Geolocation error:', err);
-        alert('Could not retrieve GPS location. Please select your area from the dropdown or type your street address.');
+        alert('Could not retrieve GPS location. Please type your street address or landmark.');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -221,6 +170,11 @@ export default function ReportPage() {
 
     if (!streetAddress.trim()) {
       alert('Please enter a street address or landmark in the city location section.');
+      return;
+    }
+
+    if (!hasPickedMapLocation) {
+      alert('Please click the map or drag the pin to choose the exact complaint location.');
       return;
     }
 
@@ -265,13 +219,9 @@ export default function ReportPage() {
           description,
           category,
           urgency: 'MEDIUM',
-          plainLanguageRights:
-            'Under the Goa Right of Citizens to Time-Bound Delivery of Public Services Act 2013, municipal services must be resolved within statutory hours with photo proof.',
           latitude: coordinates[0],
           longitude: coordinates[1],
           addressDescription: streetAddress,
-          citizenName: citizenName || 'Civic Resident',
-          citizenPhone: citizenPhone || '+91-98221-55667',
           initialPhotoUrl: initialPhotoUrl || undefined,
           initialAudioUrl: initialAudioUrl || undefined,
           bypassDuplicates: bypassDuplicate,
@@ -294,6 +244,8 @@ export default function ReportPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (authLoading || user?.role === 'AUTHORITY') return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
@@ -337,9 +289,7 @@ export default function ReportPage() {
                 Official Case ID: <span className="text-orange-600">{submittedCaseId}</span>
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Your civic complaint is now sealed in the public municipal docket. Statutory resolution timer under the{' '}
-                <strong>Goa Right to Public Services Act 2013</strong> is now active.
-              </p>
+                Your complaint has been added to the {user?.city?.name || 'city'} public docket. </p>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 max-w-md mx-auto text-xs text-left space-y-2">
@@ -352,8 +302,8 @@ export default function ReportPage() {
                 <span className="font-bold text-slate-900 truncate max-w-[200px]">{streetAddress}</span>
               </div>
               <div className="flex justify-between items-center text-slate-600">
-                <span>Guaranteed SLA:</span>
-                <span className="font-bold text-emerald-700">24h - 48h Time-Bound Redressal</span>
+                <span>Current status:</span>
+                <span className="font-bold text-emerald-700">Submitted</span>
               </div>
             </div>
 
@@ -363,7 +313,7 @@ export default function ReportPage() {
                 onClick={() => router.push(`/ticket/${submittedCaseId}`)}
                 className="btn-saffron px-6 py-3 text-xs font-bold shadow-md hover:scale-105 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>View Promise-to-Proof Docket</span>
+                <span>View Public Grievance Docket</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -388,7 +338,7 @@ export default function ReportPage() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-900 text-xs font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
-                <span>Ponda Municipal Council &bull; पोंडा नगरपालिका</span>
+                <span>{user?.city?.name || 'Your City'}, {user?.state || user?.city?.state || ''}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {language === 'kok'
@@ -398,7 +348,7 @@ export default function ReportPage() {
                   : 'Report a Civic Problem'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-600">
-                Fast, 1-minute submission. Direct action by the municipal ward team with guaranteed time-bound resolution.
+                Submit a report for {user?.city?.name || 'your city'}. Add a location so your neighbors can find the issue.
               </p>
             </div>
 
@@ -527,7 +477,7 @@ export default function ReportPage() {
                     </span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Select your city area and landmark so municipal teams can find the spot instantly.
+                    Add a street, landmark, or address to help people locate the report.
                   </p>
                 </div>
 
@@ -543,31 +493,6 @@ export default function ReportPage() {
                 </button>
               </div>
 
-              {/* Area / Ward Dropdown */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {language === 'kok'
-                    ? 'शहर विभाग / वॉर्ड'
-                    : language === 'hi'
-                    ? 'शहर का वार्ड / इलाका चुनें *'
-                    : 'City Ward / Area *'}
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedAreaId}
-                    onChange={(e) => handleAreaChange(e.target.value)}
-                    className="w-full text-xs sm:text-sm p-3.5 pr-10 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500 appearance-none"
-                  >
-                    {CITY_AREAS.map((area) => (
-                      <option key={area.id} value={area.id}>
-                        {language === 'kok' ? area.nameKok : language === 'hi' ? area.nameHi : area.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
               {/* Street Address / Landmark Input */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
@@ -581,90 +506,40 @@ export default function ReportPage() {
                   type="text"
                   value={streetAddress}
                   onChange={(e) => setStreetAddress(e.target.value)}
-                  placeholder="e.g. Near Old Bus Stand, Opp PMC Building, Sadar Market entrance..."
+                  placeholder="e.g. Street name, nearby landmark, or building number"
                   className="w-full text-xs sm:text-sm p-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
                 />
               </div>
 
-              {/* Optional Pin on Map Toggle */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowMapPicker((prev) => !prev)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 cursor-pointer"
-                >
-                  <span>{showMapPicker ? 'Hide Interactive Map' : '🗺️ Fine-tune Pin on Google Map / Satellite (Optional)'}</span>
-                  {showMapPicker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
-
-                {showMapPicker && (
-                  <div className="mt-3 space-y-2">
-                    <div className="h-72 w-full rounded-xl overflow-hidden border border-slate-300 shadow-inner">
-                      <CivicMap
-                        center={coordinates}
-                        isPicker={true}
-                        selectedCoordinates={coordinates}
-                        onCoordinatesChange={(coords) => setCoordinates(coords)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 font-mono">
-                      <span>Latitude: {coordinates[0].toFixed(5)}</span>
-                      <span>Longitude: {coordinates[1].toFixed(5)}</span>
-                    </div>
-                  </div>
-                )}
+              <div className="pt-1 space-y-2">
+                <p className="text-xs font-bold text-blue-800">Choose Exact Location on Map <span className="text-red-600">*</span></p>
+                <p className="text-xs text-slate-500">Click the map or drag the pin to the complaint location. This step is required.</p>
+                <div className="h-72 w-full rounded-xl overflow-hidden border border-slate-300 shadow-inner">
+                  <CivicMap
+                    center={coordinates}
+                    zoom={14}
+                    isPicker={true}
+                    selectedCoordinates={coordinates}
+                    onCoordinatesChange={(coords) => {
+                      setCoordinates(coords);
+                      setHasPickedMapLocation(true);
+                    }}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] px-1">
+                  <span className="font-mono text-slate-500">Latitude: {coordinates[0].toFixed(5)} &middot; Longitude: {coordinates[1].toFixed(5)}</span>
+                  <span className={hasPickedMapLocation ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'}>
+                    {hasPickedMapLocation ? 'Map location selected' : 'Select a location on the map'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* SECTION 3: CITIZEN CONTACT & SUBMISSION */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
-                    3
-                  </span>
-                  <span>
-                    {language === 'kok'
-                      ? 'संपर्क तपशील व तक्रार नोंदणी'
-                      : language === 'hi'
-                      ? 'संपर्क विवरण एवं पुष्टि'
-                      : 'Citizen Contact & Quick Submission'}
-                  </span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Your phone number will be used to send SMS tracking updates. Private info is masked on the public ledger.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Your Name &bull; नाव</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={citizenName}
-                    onChange={(e) => setCitizenName(e.target.value)}
-                    placeholder="e.g. Rohan Borkar"
-                    className="w-full text-xs sm:text-sm p-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Mobile Number &bull; फोन नंबर (फॉर एसएमएस)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={citizenPhone}
-                    onChange={(e) => setCitizenPhone(e.target.value)}
-                    placeholder="+91-98221-55667"
-                    className="w-full text-xs sm:text-sm p-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium"
-                  />
-                </div>
-              </div>
+            {/* SECTION 3: ACCOUNT & SUBMISSION */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><User className="h-4 w-4 text-emerald-600" />Complaint submitted as {user?.name || 'your account'}</h2>
+              <p className="mt-1 text-xs text-slate-500">Your account phone number and city are attached securely to this report.</p>
+            </div>
 
               {/* DUPLICATE WARNING MODAL / INLINE NOTICE */}
               {duplicateWarning && duplicateWarning.length > 0 && (
@@ -676,7 +551,7 @@ export default function ReportPage() {
                         Similar Active Issue Already Reported Nearby ({duplicateWarning[0].caseId})
                       </h4>
                       <p className="text-xs text-amber-800 mt-0.5">
-                        A neighbor already reported &quot;{duplicateWarning[0].title}&quot; within 50m of this spot. You can upvote it for faster resolution, or submit your separate report.
+                        A similar issue, &quot;{duplicateWarning[0].title}&quot;, was reported within 50m. You can open its docket or continue with a separate report.
                       </p>
                     </div>
                   </div>
@@ -685,10 +560,9 @@ export default function ReportPage() {
                     <button
                       type="button"
                       onClick={() => router.push(`/ticket/${duplicateWarning[0].caseId}`)}
-                      className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold cursor-pointer"
                     >
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                      <span>Upvote Existing Issue</span>
+                      View Existing Docket
                     </button>
 
                     <button
@@ -707,7 +581,7 @@ export default function ReportPage() {
               <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center gap-2.5 text-xs text-blue-900">
                 <Scale className="w-4 h-4 text-blue-700 shrink-0" />
                 <span>
-                  <strong>Statutory Guarantee:</strong> 24 to 72 hours time-bound delivery with mandatory geo-tagged photo proof under the Goa Right to Public Services Act 2013.
+                  <strong>Complaint tracking:</strong> Save your case ID to follow its status.
                 </span>
               </div>
 
@@ -716,7 +590,7 @@ export default function ReportPage() {
                 <button
                   type="button"
                   onClick={() => handleSubmitGrievance(false)}
-                  disabled={isSubmitting || !description.trim()}
+                  disabled={isSubmitting || !description.trim() || !hasPickedMapLocation}
                   className="btn-saffron w-full py-4 rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4 text-amber-200" />
@@ -732,7 +606,6 @@ export default function ReportPage() {
                 </button>
               </div>
             </div>
-          </div>
         )}
       </main>
 

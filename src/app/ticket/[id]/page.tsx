@@ -16,39 +16,23 @@ import {
   MapPin,
   Lock,
 } from 'lucide-react';
-import Navbar, { UserRole } from '@/components/Navbar';
+import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CommitmentCard from '@/components/CommitmentCard';
 import ProofComparison from '@/components/ProofComparison';
-import CommunityObservationThread from '@/components/CommunityObservationThread';
-import ProvenanceTimeline from '@/components/ProvenanceTimeline';
 import CivicMemorySection from '@/components/CivicMemorySection';
+import TicketHistory from '@/components/TicketHistory';
+import { useAuth } from '@/lib/auth-context';
 
 function TicketDetailContent() {
   const params = useParams();
+  const { user } = useAuth();
   const id = params?.id as string;
 
   const [ticket, setTicket] = useState<any>(null);
   const [civicMemory, setCivicMemory] = useState<any[]>([]);
+  const [canUpdateResolution, setCanUpdateResolution] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>('CITIZEN');
-
-  useEffect(() => {
-    // Read current persona
-    const saved = (localStorage.getItem('citynova_demo_role') || localStorage.getItem('civiclens_demo_role')) as UserRole | null;
-    if (saved) setUserRole(saved);
-
-    const onRoleChange = (e: any) => {
-      if (e.detail?.role) setUserRole(e.detail.role);
-    };
-
-    window.addEventListener('citynova_role_changed', onRoleChange);
-    window.addEventListener('civiclens_role_changed', onRoleChange);
-    return () => {
-      window.removeEventListener('citynova_role_changed', onRoleChange);
-      window.removeEventListener('civiclens_role_changed', onRoleChange);
-    };
-  }, []);
 
   const loadTicketData = async () => {
     if (!id) return;
@@ -58,6 +42,7 @@ function TicketDetailContent() {
       if (data.ticket) {
         setTicket(data.ticket);
         setCivicMemory(data.civicMemory || []);
+        setCanUpdateResolution(data.canUpdateResolution === true);
       }
     } catch (err) {
       console.error('Error fetching ticket:', err);
@@ -81,7 +66,7 @@ function TicketDetailContent() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Resolution confirmed and verified! Ticket permanently closed.');
+        alert('Complaint status updated.');
         loadTicketData();
       }
     } catch (err) {
@@ -90,7 +75,7 @@ function TicketDetailContent() {
   };
 
   // Citizen Dispute Action
-  const handleDisputeResolution = async (reason: string, photoUrl?: string) => {
+  const handleDisputeResolution = async (reason: string) => {
     if (!ticket) return;
     try {
       const res = await fetch(`/api/tickets/${ticket.id}/verify`, {
@@ -99,57 +84,15 @@ function TicketDetailContent() {
         body: JSON.stringify({
           action: 'DISPUTE',
           disputeReason: reason,
-          disputePhotoUrl: photoUrl,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        alert('Dispute recorded. Case has been escalated to Zonal Supervisor.');
+        alert('Complaint returned to In Progress. The after-repair photo proof has been removed.');
         loadTicketData();
       }
     } catch (err) {
       console.error('Failed to dispute:', err);
-    }
-  };
-
-  // Add Neighbor Observation
-  const handleAddObservation = async (comment: string, type: string, photoUrl?: string) => {
-    if (!ticket) return;
-    try {
-      const res = await fetch(`/api/tickets/${ticket.id}/observe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comment,
-          observationType: type,
-          photoUrl,
-          authorName: userRole === 'CITIZEN' ? 'Concerned Resident' : 'Field Staff Volunteer',
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        loadTicketData();
-      }
-    } catch (err) {
-      console.error('Failed to add observation:', err);
-    }
-  };
-
-  // Upvote Ticket
-  const handleUpvote = async () => {
-    if (!ticket) return;
-    try {
-      const res = await fetch(`/api/tickets/${ticket.id}/observe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isUpvoteOnly: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTicket((prev: any) => ({ ...prev, upvoteCount: data.upvoteCount }));
-      }
-    } catch (err) {
-      console.error('Failed to upvote:', err);
     }
   };
 
@@ -179,7 +122,7 @@ function TicketDetailContent() {
             Civic Record Not Found
           </h2>
           <p className="text-xs text-slate-600 max-w-sm mb-6">
-            Could not locate Case Docket &ldquo;{id}&rdquo; in the municipal ledger. Please check the tracking number.
+            Could not locate complaint docket &ldquo;{id}&rdquo;. Please check the tracking number.
           </p>
           <Link
             href="/"
@@ -213,14 +156,14 @@ function TicketDetailContent() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold mb-1.5">
                 <Building2 className="w-3.5 h-3.5 text-blue-700" />
-                GOVERNMENT OF GOA &bull; PONDA MUNICIPAL COUNCIL (PMC)
+                {ticket.city?.name || user?.city?.name || 'Your city'} &bull; {ticket.city?.state || user?.state || user?.city?.state || ''}
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-2">
                 <span>Public Grievance Docket:</span>
                 <span className="font-mono text-blue-700">{ticket.caseId}</span>
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Statutory Public Service Guarantee under Goa Right to Public Services Act 2013 &bull; गोवा लोकसेवा हमी कायदा
+                Complaint updates and location details
               </p>
             </div>
 
@@ -252,9 +195,9 @@ function TicketDetailContent() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { step: 1, label: '1. Registered & Docketed', desc: 'Case ID Generated' },
-                { step: 2, label: '2. SLA Clock Active', desc: 'Engineer Dispatched' },
+                { step: 2, label: '2. In Progress', desc: 'Status updated' },
                 { step: 3, label: '3. Repaired & Photo Proof', desc: 'Awaiting Citizen Sign-off' },
-                { step: 4, label: '4. Verified & Closed', desc: 'SLA Guaranteed' },
+                { step: 4, label: '4. Closed', desc: 'Report completed' },
               ].map((s) => {
                 const isPassed = currentStepIndex > s.step;
                 const isCurrent = currentStepIndex === s.step;
@@ -295,24 +238,18 @@ function TicketDetailContent() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Public Grievance Ledger &amp; Map
+            Back to city reports
           </Link>
         </div>
 
         {/* SECTION 1: Commitment Card */}
         <CommitmentCard
           caseId={ticket.caseId}
-          legacyGrievanceNumber={ticket.legacyGrievanceNumber}
-          departmentName={ticket.department?.name || 'Municipal Department'}
-          departmentCode={ticket.department?.code || 'PWD'}
-          assignedOfficerName={ticket.assignedOfficerName}
+          cityName={ticket.city?.name || user?.city?.name || 'Your city'}
           publicCommitmentDate={ticket.publicCommitmentDate}
           slaDeadline={ticket.slaDeadline}
           urgency={ticket.urgency}
           status={ticket.status}
-          plainLanguageRights={ticket.plainLanguageRights}
-          wardName={ticket.ward?.name || 'Central Ward'}
-          wardZone={ticket.ward?.zone || 'Zone A'}
         />
 
         {/* Complaint Summary Description */}
@@ -320,7 +257,7 @@ function TicketDetailContent() {
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
             <div>
               <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block">
-                {ticket.category} &bull; {ticket.ward?.name || 'Central Ward'}
+                {ticket.category} &bull; {ticket.city?.name || user?.city?.name || 'Your city'}
               </span>
               <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5">
                 {ticket.title}
@@ -366,28 +303,15 @@ function TicketDetailContent() {
           resolutionNotes={ticket.resolutionNotes}
           status={ticket.status}
           disputeReason={ticket.disputeReason}
-          disputePhotoUrl={ticket.disputePhotoUrl}
           onVerify={handleVerifyResolution}
           onDispute={handleDisputeResolution}
-          isCitizenUser={userRole === 'CITIZEN' || userRole === 'MUNICIPAL_ADMIN'}
+          isCitizenUser={canUpdateResolution}
         />
 
-        {/* SECTION 3: Community Observation Thread */}
-        <CommunityObservationThread
-          ticketId={ticket.id}
-          upvoteCount={ticket.upvoteCount}
-          observations={ticket.observations || []}
-          onAddObservation={handleAddObservation}
-          onUpvote={handleUpvote}
-        />
+        <TicketHistory key={ticket.updatedAt} ticketId={ticket.id} />
 
-        {/* SECTION 4: Civic Memory Section */}
         {civicMemory.length > 0 && <CivicMemorySection pastFixes={civicMemory} />}
 
-        {/* SECTION 5: Provenance Audit Trail */}
-        <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-xs">
-          <ProvenanceTimeline logs={ticket.auditLogs || []} />
-        </div>
       </main>
 
       <Footer />

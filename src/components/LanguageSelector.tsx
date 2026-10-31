@@ -33,7 +33,9 @@ export default function LanguageSelector({ variant = 'compact' }: LanguageSelect
         aria-expanded={isOpen}
       >
         <Globe className="w-3.5 h-3.5 text-blue-600" />
-        <span className="text-base leading-none">{currentLanguageInfo.flag}</span>
+        {currentLanguageInfo.flag ? (
+          <span className="text-base leading-none">{currentLanguageInfo.flag}</span>
+        ) : null}
         <span className="font-bold">
           {variant === 'compact' ? currentLanguageInfo.nativeLabel : currentLanguageInfo.label}
         </span>
@@ -60,10 +62,16 @@ export default function LanguageSelector({ variant = 'compact' }: LanguageSelect
               }`}
             >
               <div className="flex items-center gap-2">
-                <span className="text-base">{lang.flag}</span>
+                {lang.flag ? (
+                  <span className="text-base">{lang.flag}</span>
+                ) : (
+                  <Globe className="w-4 h-4 text-blue-600" />
+                )}
                 <div>
                   <span className="block font-bold">{lang.nativeLabel}</span>
-                  <span className="block text-[10px] text-slate-500">{lang.label}</span>
+                  {lang.label !== lang.nativeLabel && (
+                    <span className="block text-[10px] text-slate-500">{lang.label}</span>
+                  )}
                 </div>
               </div>
               {language === lang.code && <Check className="w-4 h-4 text-blue-600" />}

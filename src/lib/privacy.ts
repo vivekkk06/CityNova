@@ -1,7 +1,7 @@
 /**
  * Privacy Filter & Data Minimization Utilities
  * Automatically masks citizen personal identifiable information (PII)
- * on public transparency dashboards and ledger views.
+ * on public complaint maps and dockets.
  */
 
 export function maskCitizenName(name: string | null | undefined): string {
@@ -29,9 +29,15 @@ export function maskPhoneNumber(phone: string | null | undefined): string {
   return `${visiblePrefix}****${visibleSuffix}`;
 }
 
-export function sanitizeTicketForPublic<T extends { citizenName: string; citizenPhone: string }>(ticket: T): T {
+export function sanitizeTicketForPublic<T extends { citizenName: string; citizenPhone: string }>(ticket: T) {
+  const { reporterId: _reporterId, ...publicTicket } = ticket as T & Record<string, unknown>;
+  void _reporterId;
   return {
-    ...ticket,
+    ...publicTicket,
+    addressDescription: typeof publicTicket.addressDescription === 'string'
+      ? publicTicket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, '')
+      : publicTicket.addressDescription,
+    plainLanguageRights: 'Status updates are provided by the CityNova reporting workflow.',
     citizenName: maskCitizenName(ticket.citizenName),
     citizenPhone: maskPhoneNumber(ticket.citizenPhone),
   };

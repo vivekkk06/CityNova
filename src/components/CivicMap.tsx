@@ -1,94 +1,20 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import {
-  MapPin,
-  PhoneCall,
-  Mail,
-  Building2,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Sparkles,
-  Layers,
-  Crosshair,
-  UserCheck,
-  X,
-  Camera,
-  ExternalLink,
-  ChevronDown,
-  Navigation,
-} from 'lucide-react';
-import type { Map as LeafletMap, Marker as LeafletMarker, LayerGroup, TileLayer } from 'leaflet';
-import { useLanguage } from '@/lib/i18n';
+import { useRouter } from 'next/navigation';
+import type { Map as LeafletMap, Marker as LeafletMarker, LayerGroup } from 'leaflet';
 
-export type MapTileProvider = 'google-roadmap' | 'google-satellite' | 'google-hybrid' | 'google-terrain' | 'municipal-carto';
-
-export interface TileProviderConfig {
-  id: MapTileProvider;
-  label: string;
-  sublabel: string;
-  icon: string;
-  url: string;
-  subdomains: string[];
-  attribution: string;
-  maxZoom: number;
-}
-
-export const TILE_PROVIDERS: Record<MapTileProvider, TileProviderConfig> = {
-  'google-roadmap': {
-    id: 'google-roadmap',
-    label: 'Google Maps (Roadmap)',
-    sublabel: 'Standard Street View',
-    icon: '🗺️',
-    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    attribution: '&copy; Google Maps',
-    maxZoom: 20,
-  },
-  'google-satellite': {
-    id: 'google-satellite',
-    label: 'Google Satellite',
-    sublabel: 'High-Res Aerial Imagery',
-    icon: '🛰️',
-    url: 'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    attribution: '&copy; Google Satellite Imagery',
-    maxZoom: 20,
-  },
-  'google-hybrid': {
-    id: 'google-hybrid',
-    label: 'Google Hybrid',
-    sublabel: 'Satellite + Roads & Names',
-    icon: '🌐',
-    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    attribution: '&copy; Google Hybrid Maps',
-    maxZoom: 20,
-  },
-  'google-terrain': {
-    id: 'google-terrain',
-    label: 'Google Terrain',
-    sublabel: 'Topographical Contours',
-    icon: '⛰️',
-    url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    attribution: '&copy; Google Terrain',
-    maxZoom: 20,
-  },
-  'municipal-carto': {
-    id: 'municipal-carto',
-    label: 'Municipal GIS Light',
-    sublabel: 'Clean Official Cartography',
-    icon: '🏛️',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c', 'd'],
-    attribution: '&copy; OpenStreetMap &copy; CARTO &copy; CityNova GIS',
-    maxZoom: 19,
-  },
+const MAP_TILES = {
+  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+  maxZoom: 19,
 };
 
+const MAP_LABELS = {
+  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+  attribution: 'Labels &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS User Community',
+  maxZoom: 19,
+};
 export interface MapTicket {
   id: string;
   caseId: string;
@@ -102,67 +28,32 @@ export interface MapTicket {
   slaDeadline?: string | Date;
   initialPhotoUrl?: string | null;
   resolutionPhotoUrl?: string | null;
-  wardId?: string;
-}
-
-export interface MapWard {
-  id: string;
-  code: string;
-  name: string;
-  zone: string;
-  boundaries: {
-    type: string;
-    coordinates: number[][][];
-  };
-  centerLat: number;
-  centerLng: number;
-  officerName?: string;
-  officerPhone?: string;
-  officerEmail?: string;
-  emergencyContact?: string;
-  stats?: {
-    total: number;
-    open: number;
-    resolved: number;
-  };
 }
 
 interface CivicMapProps {
   tickets?: MapTicket[];
-  wards?: MapWard[];
   center?: [number, number];
   zoom?: number;
   isPicker?: boolean;
   selectedCoordinates?: [number, number] | null;
   onCoordinatesChange?: (coords: [number, number]) => void;
-  activeWardId?: string;
 }
 
 export default function CivicMap({
   tickets = [],
-  wards = [],
-  center = [15.4050, 74.0170],
-  zoom = 14,
+  center = [20.5937, 78.9629],
+  zoom = 5,
   isPicker = false,
   selectedCoordinates,
   onCoordinatesChange,
-  activeWardId,
 }: CivicMapProps) {
-  const { t } = useLanguage();
+  const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
-  const baseTileLayerRef = useRef<TileLayer | null>(null);
   const markersLayerRef = useRef<LayerGroup | null>(null);
-  const clusterLayerRef = useRef<LayerGroup | null>(null);
-  const polygonsLayerRef = useRef<LayerGroup | null>(null);
   const pickerMarkerRef = useRef<LeafletMarker | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedWardForContact, setSelectedWardForContact] = useState<MapWard | null>(null);
-  const [showClusters, setShowClusters] = useState(true);
-  const [showBoundaries, setShowBoundaries] = useState(true);
-  const [activeTileProvider, setActiveTileProvider] = useState<MapTileProvider>('google-roadmap');
-  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
 
   // Initialize Map
   useEffect(() => {
@@ -179,21 +70,20 @@ export default function CivicMap({
       const map = L.map(mapContainerRef.current, {
         center: initialCenter,
         zoom: zoom,
-        zoomControl: true,
+        zoomControl: false,
         scrollWheelZoom: !isPicker,
       });
 
-      // Default to Google Maps Roadmap Tile Layer
-      const initialProv = TILE_PROVIDERS['google-roadmap'];
-      const initialTileLayer = L.tileLayer(initialProv.url, {
-        attribution: initialProv.attribution,
-        subdomains: initialProv.subdomains,
-        maxZoom: initialProv.maxZoom,
+      L.control.zoom({ position: 'topright' }).addTo(map);
+      const initialTileLayer = L.tileLayer(MAP_TILES.url, {
+        attribution: MAP_TILES.attribution,
+        maxZoom: MAP_TILES.maxZoom,
+      }).addTo(map);
+      L.tileLayer(MAP_LABELS.url, {
+        attribution: MAP_LABELS.attribution,
+        maxZoom: MAP_LABELS.maxZoom,
       }).addTo(map);
 
-      baseTileLayerRef.current = initialTileLayer;
-      polygonsLayerRef.current = L.layerGroup().addTo(map);
-      clusterLayerRef.current = L.layerGroup().addTo(map);
       markersLayerRef.current = L.layerGroup().addTo(map);
 
       mapInstanceRef.current = map;
@@ -224,147 +114,12 @@ export default function CivicMap({
     };
   }, []);
 
-  // Base Tile Layer Switcher Effect (Google Maps Roadmap / Satellite / Hybrid / Municipal GIS)
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapLoaded) return;
+    if (!mapLoaded || !mapInstanceRef.current) return;
+    mapInstanceRef.current.flyTo(center, zoom, { animate: false });
+  }, [mapLoaded, center[0], center[1], zoom]);
 
-    import('leaflet').then((L) => {
-      const map = mapInstanceRef.current;
-      if (!map) return;
-
-      if (baseTileLayerRef.current) {
-        map.removeLayer(baseTileLayerRef.current);
-      }
-
-      const prov = TILE_PROVIDERS[activeTileProvider];
-      const newLayer = L.tileLayer(prov.url, {
-        attribution: prov.attribution,
-        subdomains: prov.subdomains,
-        maxZoom: prov.maxZoom,
-      }).addTo(map);
-
-      // Keep base tile behind markers and boundaries
-      if ((newLayer as any).bringToBack) {
-        (newLayer as any).bringToBack();
-      }
-
-      baseTileLayerRef.current = newLayer;
-    });
-  }, [activeTileProvider, mapLoaded]);
-
-  // Sync active ward or default ward for contact card
-  useEffect(() => {
-    if (activeWardId && activeWardId !== 'all') {
-      const found = wards.find((w) => w.id === activeWardId);
-      if (found) setSelectedWardForContact(found);
-    } else if (wards.length > 0 && !selectedWardForContact) {
-      setSelectedWardForContact(wards[0]);
-    }
-  }, [activeWardId, wards]);
-
-  // Update Ward Polygons & Boundaries
-  useEffect(() => {
-    if (!mapInstanceRef.current || !mapLoaded || !polygonsLayerRef.current) return;
-
-    import('leaflet').then((L) => {
-      const polyLayer = polygonsLayerRef.current;
-      if (!polyLayer) return;
-
-      polyLayer.clearLayers();
-
-      if (!showBoundaries) return;
-
-      const colors = ['#2563eb', '#059669', '#7c3aed', '#ea580c'];
-
-      wards.forEach((ward, index) => {
-        if (!ward.boundaries?.coordinates?.[0]) return;
-        const color = colors[index % colors.length];
-        const isHighlight = activeWardId === ward.id || selectedWardForContact?.id === ward.id;
-
-        // Convert [lng, lat] to [lat, lng] for Leaflet
-        const latLngs = ward.boundaries.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
-
-        const polygon = L.polygon(latLngs, {
-          color: isHighlight ? '#ea580c' : color,
-          weight: isHighlight ? 3.5 : 2,
-          opacity: 0.9,
-          fillColor: color,
-          fillOpacity: isHighlight ? 0.22 : 0.08,
-        }).addTo(polyLayer);
-
-        polygon.on('click', () => {
-          setSelectedWardForContact(ward);
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.flyTo([ward.centerLat, ward.centerLng], 15);
-          }
-        });
-
-        polygon.bindTooltip(
-          `<div style="font-family: inherit; font-size: 11px; padding: 2px;">
-            <strong style="color: #0f172a; display: block;">${ward.name}</strong>
-            <span style="color: #64748b; font-size: 10px;">Click to view Ward Officers & Contacts</span>
-          </div>`,
-          { sticky: true }
-        );
-      });
-    });
-  }, [mapLoaded, wards, activeWardId, selectedWardForContact, showBoundaries]);
-
-  // Update Nagarika-Style Ward Cluster Bubbles
-  useEffect(() => {
-    if (!mapInstanceRef.current || !mapLoaded || !clusterLayerRef.current) return;
-
-    import('leaflet').then((L) => {
-      const clusterLayer = clusterLayerRef.current;
-      if (!clusterLayer) return;
-
-      clusterLayer.clearLayers();
-
-      if (!showClusters || isPicker) return;
-
-      wards.forEach((ward) => {
-        // Calculate count of tickets in this ward
-        const wardTickets = tickets.filter((t) => t.wardId === ward.id);
-        const count = ward.stats?.total || wardTickets.length || 0;
-        if (count === 0 && wardTickets.length === 0) return;
-
-        const displayCount = count || wardTickets.length;
-        const size = Math.min(58, Math.max(38, 36 + Math.log2(displayCount + 1) * 4));
-
-        const clusterHtml = `
-          <div class="nagarika-cluster-badge" style="width: ${size}px; height: ${size}px; font-size: ${size > 44 ? '13px' : '11px'};">
-            ${displayCount}
-          </div>
-        `;
-
-        const clusterIcon = L.divIcon({
-          html: clusterHtml,
-          className: 'nagarika-bubble-icon',
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-
-        const marker = L.marker([ward.centerLat, ward.centerLng], { icon: clusterIcon }).addTo(clusterLayer);
-
-        marker.on('click', () => {
-          setSelectedWardForContact(ward);
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.flyTo([ward.centerLat, ward.centerLng], 15);
-          }
-        });
-
-        marker.bindTooltip(
-          `<div style="font-family: inherit; font-size: 11px;">
-            <strong>${ward.name}</strong><br/>
-            <span style="color: #ea580c; font-weight: 700;">${displayCount} Civic Grievances</span>
-          </div>`,
-          { direction: 'top' }
-        );
-      });
-    });
-  }, [mapLoaded, wards, tickets, showClusters, isPicker]);
-
-  // Update Individual Ticket Markers with Image Preview
+  // Show one pin for each reported issue.
   useEffect(() => {
     if (!mapInstanceRef.current || !mapLoaded || !markersLayerRef.current) return;
 
@@ -378,25 +133,13 @@ export default function CivicMap({
 
       tickets.forEach((ticket) => {
         let pinColor = '#dc2626'; // Red for open/critical
-        let statusBadge = 'Open / Urgent';
-        let statusBg = '#fef2f2';
-        let statusText = '#b91c1c';
 
         if (ticket.status === 'IN_PROGRESS' || ticket.status === 'ASSIGNED') {
           pinColor = '#d97706'; // Amber
-          statusBadge = 'In Progress (SLA Active)';
-          statusBg = '#fffbeb';
-          statusText = '#b45309';
         } else if (ticket.status === 'PROVISIONALLY_RESOLVED') {
           pinColor = '#7c3aed'; // Violet
-          statusBadge = 'Pending Resident Check';
-          statusBg = '#f5f3ff';
-          statusText = '#6d28d9';
         } else if (ticket.status === 'RESOLVED' || ticket.status === 'CLOSED') {
           pinColor = '#059669'; // Green
-          statusBadge = 'Verified Closed';
-          statusBg = '#ecfdf5';
-          statusText = '#047857';
         }
 
         const customHtml = `
@@ -412,62 +155,16 @@ export default function CivicMap({
           className: 'civic-marker-pin',
           iconSize: [26, 26],
           iconAnchor: [13, 13],
-          popupAnchor: [0, -14],
         });
 
         const marker = L.marker([ticket.latitude, ticket.longitude], { icon });
 
-        // Build popup with image thumbnail and clean government layout
-        const hasPhoto = Boolean(ticket.initialPhotoUrl || ticket.resolutionPhotoUrl);
-        const photoUrl = ticket.resolutionPhotoUrl || ticket.initialPhotoUrl;
+        marker.on('click', () => router.push(`/ticket/${ticket.caseId}`));
 
-        const popupContent = `
-          <div style="font-family: inherit; width: 260px; overflow: hidden; background: white; border-radius: 10px;">
-            ${
-              hasPhoto
-                ? `<div style="position: relative; width: 100%; height: 110px; background: #e2e8f0; overflow: hidden;">
-                    <img src="${photoUrl}" alt="Civic Photo Proof" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'" />
-                    <span style="position: absolute; bottom: 6px; left: 6px; background: rgba(15, 23, 42, 0.75); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
-                      📸 Citizen Photo Proof
-                    </span>
-                  </div>`
-                : `<div style="background: #f1f5f9; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 10px; color: #64748b;">
-                    No photo uploaded with report
-                  </div>`
-            }
-
-            <div style="padding: 10px 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 10px; font-weight: 700; color: #475569; letter-spacing: 0.5px;">${ticket.caseId}</span>
-                <span style="font-size: 10px; background: ${statusBg}; color: ${statusText}; font-weight: 700; padding: 2px 7px; border-radius: 999px;">
-                  ${statusBadge}
-                </span>
-              </div>
-
-              <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.35;">
-                ${ticket.title}
-              </h4>
-
-              <p style="margin: 0 0 10px 0; font-size: 11px; color: #64748b;">
-                ${ticket.category} ${ticket.addressDescription ? `&bull; ${ticket.addressDescription.slice(0, 35)}...` : ''}
-              </p>
-
-              <a href="/ticket/${ticket.caseId}" style="display: block; text-align: center; background: #ea580c; color: white; padding: 7px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">
-                View Promise-to-Proof Ledger &rarr;
-              </a>
-
-              <a href="https://www.google.com/maps/search/?api=1&query=${ticket.latitude},${ticket.longitude}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #0f172a; color: white; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; margin-top: 6px;">
-                📍 Open in Google Maps (GPS) ↗
-              </a>
-            </div>
-          </div>
-        `;
-
-        marker.bindPopup(popupContent, { maxWidth: 280 });
         markersLayer.addLayer(marker);
       });
     });
-  }, [mapLoaded, tickets, isPicker]);
+  }, [mapLoaded, tickets, isPicker, router]);
 
   // Update Location Picker marker (for reporting grievances)
   useEffect(() => {
@@ -509,236 +206,11 @@ export default function CivicMap({
     });
   }, [mapLoaded, selectedCoordinates, isPicker, onCoordinatesChange]);
 
-  // Reset view to city center
-  const handleResetView = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(center, zoom);
-      setSelectedWardForContact(null);
-    }
-  };
-
   return (
     <div className="relative w-full h-full min-h-[480px] lg:min-h-[540px] rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-100">
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Top Map Action Bar */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2">
-        {/* Google Maps / GIS Layer Switcher */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setLayerDropdownOpen(!layerDropdownOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-slate-900 text-xs font-bold shadow-md border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <span>{TILE_PROVIDERS[activeTileProvider].icon}</span>
-            <span>{TILE_PROVIDERS[activeTileProvider].label}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-          </button>
 
-          {layerDropdownOpen && (
-            <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-40 animate-in fade-in zoom-in-95">
-              <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Map View &bull; मानचित्र प्रकार
-              </div>
-              {(Object.keys(TILE_PROVIDERS) as MapTileProvider[]).map((key) => {
-                const prov = TILE_PROVIDERS[key];
-                const isSelected = activeTileProvider === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setActiveTileProvider(key);
-                      setLayerDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors text-left cursor-pointer ${
-                      isSelected ? 'bg-orange-50 text-orange-900 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{prov.icon}</span>
-                      <div>
-                        <span className="block font-bold leading-tight">{prov.label}</span>
-                        <span className="block text-[10px] text-slate-500 leading-tight">{prov.sublabel}</span>
-                      </div>
-                    </div>
-                    {isSelected && <span className="text-orange-600 font-bold text-xs">✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Direct Google Maps Deep-Link */}
-        <a
-          href={`https://www.google.com/maps/@${selectedWardForContact ? selectedWardForContact.centerLat : center[0]},${selectedWardForContact ? selectedWardForContact.centerLng : center[1]},15z`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-md transition-colors"
-          title="Open current area in Google Maps"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-          <span>Google Maps ↗</span>
-        </a>
-
-        <button
-          onClick={handleResetView}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold shadow-md border border-slate-200 hover:bg-slate-50 transition-colors"
-          title="Reset Map to Full City View"
-        >
-          <Crosshair className="w-3.5 h-3.5 text-orange-600" />
-          <span>City View &bull; पूरा शहर</span>
-        </button>
-
-        <button
-          onClick={() => setShowClusters(!showClusters)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md border transition-colors ${
-            showClusters
-              ? 'bg-red-800 text-white border-red-900'
-              : 'bg-white/95 text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}
-          title="Toggle Nagarika-style Ward Issue Clusters"
-        >
-          <span>🔴 {showClusters ? 'Clusters ON' : 'Clusters OFF'}</span>
-        </button>
-
-        <button
-          onClick={() => setShowBoundaries(!showBoundaries)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md border transition-colors ${
-            showBoundaries
-              ? 'bg-blue-800 text-white border-blue-900'
-              : 'bg-white/95 text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}
-          title="Toggle Ward Boundary Outlines"
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>{showBoundaries ? 'Ward Boundaries ON' : 'Boundaries OFF'}</span>
-        </button>
-      </div>
-
-      {/* FLOATING WARD OFFICIAL DIRECTORY CARD (Requested: In map -> all contact info regarding officials) */}
-      {selectedWardForContact && !isPicker && (
-        <div className="absolute top-3 right-3 z-30 w-80 sm:w-88 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-xl border border-slate-200 animate-in fade-in slide-in-from-top-3">
-          <div className="flex justify-between items-start border-b border-slate-100 pb-2.5 mb-2.5">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                  {selectedWardForContact.code} &bull; {selectedWardForContact.zone}
-                </span>
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                {selectedWardForContact.name}
-              </h3>
-            </div>
-            <button
-              onClick={() => setSelectedWardForContact(null)}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              title="Close ward official card"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            {/* Officer In-Charge */}
-            <div className="p-2.5 rounded-lg bg-orange-50/70 border border-orange-100">
-              <span className="text-[10px] text-orange-800 font-bold uppercase block">
-                Nodal Ward Officer (प्रभारी अधिकारी)
-              </span>
-              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
-                {selectedWardForContact.officerName || 'Er. Pradeep Naik (Chief Officer)'}
-              </strong>
-            </div>
-
-            {/* Direct Contact Buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href={`tel:${selectedWardForContact.officerPhone || '08322312148'}`}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors"
-              >
-                <PhoneCall className="w-3.5 h-3.5" />
-                <span>Call Officer</span>
-              </a>
-
-              <a
-                href={`mailto:${selectedWardForContact.officerEmail || 'grievance.pmc@goa.gov.in'}`}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs shadow-xs transition-colors"
-              >
-                <Mail className="w-3.5 h-3.5" />
-                <span>Email Officer</span>
-              </a>
-            </div>
-
-            {/* Helpline Numbers */}
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-600">
-              <span>Emergency 24x7 Helpline:</span>
-              <strong className="text-slate-900 font-bold">
-                {selectedWardForContact.emergencyContact || '1913 / 0832-2312148'}
-              </strong>
-            </div>
-
-            {/* Ward Grievance Stats */}
-            <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg text-[11px]">
-              <div>
-                <span className="text-slate-500">Active Grievances:</span>
-                <strong className="text-orange-600 font-bold ml-1">
-                  {selectedWardForContact.stats?.open ?? tickets.filter((t) => t.wardId === selectedWardForContact.id && t.status !== 'RESOLVED').length}
-                </strong>
-              </div>
-              <div>
-                <span className="text-slate-500">Resolved:</span>
-                <strong className="text-emerald-600 font-bold ml-1">
-                  {selectedWardForContact.stats?.resolved ?? tickets.filter((t) => t.wardId === selectedWardForContact.id && t.status === 'RESOLVED').length}
-                </strong>
-              </div>
-            </div>
-
-            {/* Google Maps Directions for this ward */}
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${selectedWardForContact.centerLat},${selectedWardForContact.centerLng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-black text-white rounded-lg font-bold text-xs shadow-xs transition-colors"
-            >
-              <Navigation className="w-3.5 h-3.5 text-blue-400" />
-              <span>Directions on Google Maps ↗</span>
-            </a>
-
-            {/* Quick Action: Report for this ward */}
-            <Link
-              href={`/report?ward=${selectedWardForContact.id}`}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold text-xs shadow-md transition-colors"
-            >
-              <span>+ Report Grievance in this Ward</span>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Map Legend */}
-      <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md rounded-xl p-3 shadow-lg border border-slate-200 text-xs space-y-1.5 max-w-[220px]">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-          <span className="font-bold text-slate-800 text-[11px]">Civic Status Legend</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0"></span>
-          <span className="text-slate-700 font-medium">Open / Critical (तुरंत ध्यान)</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-          <span className="text-slate-700 font-medium">In Progress (कार्य जारी)</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0"></span>
-          <span className="text-slate-700 font-medium">Citizen Verification Check</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
-          <span className="text-slate-700 font-medium">Verified & Closed (समाधान)</span>
-        </div>
-      </div>
     </div>
   );
 }

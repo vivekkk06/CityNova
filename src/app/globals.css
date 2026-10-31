@@ -93,38 +93,6 @@ body {
   font-family: inherit;
 }
 
-.leaflet-popup-content-wrapper {
-  border-radius: 0.75rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid #e2e8f0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-.leaflet-popup-content {
-  margin: 0 !important;
-  line-height: 1.4 !important;
-}
-
-/* Nagarika Cluster Bubble Badge */
-.nagarika-cluster-badge {
-  background: radial-gradient(circle, #7f1d1d 0%, #5c1414 100%);
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(127, 29, 29, 0.45);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.nagarika-cluster-badge:hover {
-  transform: scale(1.12);
-}
-
 /* Pulse keyframe */
 @keyframes ring-pulse {
   0% {

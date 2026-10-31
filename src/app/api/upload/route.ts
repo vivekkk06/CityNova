@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveUploadedFile } from '@/lib/storage';
+import { getAuthSession } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getAuthSession(req);
+    if (!session) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
+    if (session.user.role !== 'CITIZEN') return NextResponse.json({ error: 'Only Citizen accounts can upload report media.' }, { status: 403 });
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
 
