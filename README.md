@@ -1,4 +1,4 @@
-# CityNova --- CivicLens
+# CityNova 
 
 **Transparent and Interactive Civic Reporting and Accountable Governance
 System**\

@@ -295,10 +295,12 @@ export default function ProfilePage() {
 
       await refresh();
       setProfileSaveSuccess(true);
+      setProfileSaveError('');
       setIsEditingProfile(false);
-      setTimeout(() => setProfileSaveSuccess(false), 3000);
+      setTimeout(() => setProfileSaveSuccess(false), 4000);
     } catch (err) {
       setProfileSaveError(err instanceof Error ? err.message : 'Failed to update profile');
+      setProfileSaveSuccess(false);
     } finally {
       setSavingProfile(false);
     }
@@ -740,7 +742,7 @@ export default function ProfilePage() {
               {profileSaveSuccess && (
                 <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Profile details updated successfully!</span>
+                  <span>Successfully updated profile.</span>
                 </div>
               )}
 
@@ -844,7 +846,10 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
                     <button
                       type="button"
-                      onClick={() => setIsEditingProfile(false)}
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setProfileSaveError('');
+                      }}
                       className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
                     >
                       Cancel
@@ -917,7 +922,9 @@ export default function ProfilePage() {
                     </span>
                     <p className="text-base font-extrabold text-slate-900">
                       {profileForm.dob ? (
-                        new Date(profileForm.dob).toLocaleDateString(undefined, {
+                        new Date(
+                          profileForm.dob.includes('T') ? profileForm.dob : `${profileForm.dob}T00:00:00`
+                        ).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',

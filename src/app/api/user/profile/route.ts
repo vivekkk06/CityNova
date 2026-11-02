@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest) {
       updateData.bio = bio || null;
     }
 
-    if (typeof body.designation === 'string') {
+    if (session.user.role === 'AUTHORITY' && typeof body.designation === 'string') {
       const validDesignations = [
         'District Magistrate (DM)',
         'Sub-divisional Magistrate (SDM)',
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest) {
       updateData.designation = designation || null;
     }
 
-    const updatedUser = await (prisma.user as any).update({
+    const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,
       include: { city: true },
@@ -77,12 +77,14 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Profile updated successfully.',
+      message: 'Successfully updated profile.',
       user: publicUser(updatedUser),
     });
   } catch (error) {
     console.error('Error updating user profile:', error);
-    return NextResponse.json({ error: 'Failed to update profile.' }, { status: 500 });
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to update profile.',
+    }, { status: 500 });
   }
 }
 
