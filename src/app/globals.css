@@ -125,3 +125,44 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+
+/* GPS Current Location Pulsing animation */
+@keyframes gps-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+.gps-pulse-effect {
+  animation: gps-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Map Click Pin Drop animation */
+@keyframes pin-drop {
+  0% {
+    transform: translateY(-24px) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(2px) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.pin-drop-anim {
+  animation: pin-drop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

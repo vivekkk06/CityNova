@@ -22,6 +22,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useLanguage } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth-context';
+import type { ClickedLocationInfo } from '@/components/CivicMap';
 
 // Dynamically import Leaflet CivicMap to prevent SSR window issues
 const CivicMap = dynamic(() => import('@/components/CivicMap'), {
@@ -46,6 +47,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [clickedLocation, setClickedLocation] = useState<ClickedLocationInfo | null>(null);
 
   const fetchData = async () => {
     try {
@@ -325,119 +327,195 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Issue Discovery Filters & Search */}
-          <div className="space-y-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80">
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              {/* Search Bar */}
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter by issue title, landmark, or case ID..."
-                  className="w-full text-xs pl-9 pr-8 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600"
-                />
-                {searchQuery && (
+          {/* 2-Column Dashboard Layout: Left Controls + Right Map */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* LEFT CONTROL SIDEBAR: Categories, Statuses, Search */}
+            <div className="lg:col-span-4 flex flex-col justify-between bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 sm:p-5 space-y-4">
+              {/* CLICKED LOCATION BANNER (Auto-written when map is clicked) */}
+              {clickedLocation && (
+                <div className="rounded-xl border-2 border-orange-400 bg-orange-50/90 p-3.5 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-orange-800 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                      <span>Pinned Location</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setClickedLocation(null)}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 font-bold flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Clear</span>
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-900 leading-snug">
+                      {clickedLocation.shortAddress}
+                    </p>
+                    <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2">
+                      {clickedLocation.displayName}
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-mono mt-1 block">
+                      {clickedLocation.lat.toFixed(5)}° N, {clickedLocation.lng.toFixed(5)}° E
+                    </span>
+                  </div>
+                  <div className="pt-1 flex items-center gap-2">
+                    <Link
+                      href={`/report?lat=${clickedLocation.lat}&lng=${clickedLocation.lng}&address=${encodeURIComponent(clickedLocation.shortAddress)}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition"
+                    >
+                      <PlusCircle className="w-3 h-3" />
+                      <span>Report Issue Here</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Search Box */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Search Complaints
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Filter by title, landmark, ID..."
+                    className="w-full text-xs pl-9 pr-8 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 shadow-2xs transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Filter Menu */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Status Menu
+                  </label>
+                  {selectedStatus !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStatus('all')}
+                      className="text-[10px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'all', label: 'All Statuses', dot: 'bg-slate-700' },
+                    { id: 'in_progress', label: 'Active Work', dot: 'bg-amber-500' },
+                    { id: 'pending_approval', label: 'Pending Sign-off', dot: 'bg-purple-600' },
+                    { id: 'resolved', label: 'Resolved', dot: 'bg-emerald-600' },
+                  ].map((st) => {
+                    const isSelected = selectedStatus === st.id;
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setSelectedStatus(st.id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
+                        <span className="truncate">{st.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Categories Menu */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Categories
+                  </label>
+                  {selectedCategory !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('all')}
+                      className="text-[10px] font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    { id: 'all', label: 'All Issues', icon: '🏛️' },
+                    { id: 'roads', label: 'Roads & Potholes', icon: '🕳️' },
+                    { id: 'water', label: 'Water & Drainage', icon: '💧' },
+                    { id: 'sanitation', label: 'Garbage & Sanitation', icon: '🗑️' },
+                    { id: 'lights', label: 'Streetlights', icon: '💡' },
+                  ].map((cat) => {
+                    const isSelected = selectedCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-bold'
+                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <span className="text-sm shrink-0">{cat.icon}</span>
+                          <span className="truncate">{cat.label}</span>
+                        </span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom Filter Summary & Reset Action */}
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing <span className="font-bold text-slate-900">{filteredTickets.length}</span> of {tickets.length} issues
+                </span>
+                {hasActiveFilters && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    onClick={clearFilters}
+                    className="text-xs text-orange-600 hover:text-orange-800 font-bold flex items-center gap-1 cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
+                    <span>Reset All</span>
                   </button>
                 )}
               </div>
-
-              {/* Status Tabs */}
-              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shrink-0 overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus('all')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                    selectedStatus === 'all' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  All Statuses
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus('in_progress')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                    selectedStatus === 'in_progress' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Active Work
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus('pending_approval')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                    selectedStatus === 'pending_approval' ? 'bg-purple-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Pending Sign-off
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus('resolved')}
-                  className={`px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
-                    selectedStatus === 'resolved' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  Resolved
-                </button>
-              </div>
             </div>
 
-            {/* Category Chips & Filter Summary */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
-                  <Filter className="w-3 h-3" /> Categories:
-                </span>
-                {[
-                  { id: 'all', label: 'All Issues' },
-                  { id: 'roads', label: '🕳️ Roads & Potholes' },
-                  { id: 'water', label: '💧 Water & Drainage' },
-                  { id: 'sanitation', label: '🗑️ Garbage & Sanitation' },
-                  { id: 'lights', label: '💡 Streetlights' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                      selectedCategory === cat.id
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="text-xs text-orange-600 hover:text-orange-800 font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                  <span>Reset Filters</span>
-                </button>
-              )}
+            {/* RIGHT MAP: Smaller, Right-Aligned */}
+            <div className="lg:col-span-8 min-h-[440px] h-[480px] sm:h-[500px] lg:h-[520px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs relative bg-slate-100">
+              <CivicMap
+                tickets={filteredTickets}
+                center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}
+                zoom={user?.city ? 14 : 5}
+                className="w-full h-full min-h-full rounded-2xl"
+                onLocationClick={setClickedLocation}
+                clickedLocation={clickedLocation}
+              />
             </div>
-          </div>
-
-          {/* Interactive GIS Map */}
-          <div className="h-[480px] sm:h-[540px] w-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner relative">
-            <CivicMap
-              tickets={filteredTickets}
-              center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}
-              zoom={user?.city ? 14 : 5}
-            />
           </div>
 
           {/* RECENT GRIEVANCE DOCKETS DISCOVERY GRID */}

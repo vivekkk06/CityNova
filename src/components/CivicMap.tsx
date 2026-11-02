@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Map as LeafletMap, Marker as LeafletMarker, LayerGroup } from 'leaflet';
+import { Locate, Loader2, MapPin, X } from 'lucide-react';
 
 const MAP_TILES = {
   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -15,6 +16,7 @@ const MAP_LABELS = {
   attribution: 'Labels &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS User Community',
   maxZoom: 19,
 };
+
 export interface MapTicket {
   id: string;
   caseId: string;
@@ -30,6 +32,15 @@ export interface MapTicket {
   resolutionPhotoUrl?: string | null;
 }
 
+export interface ClickedLocationInfo {
+  lat: number;
+  lng: number;
+  shortAddress: string;
+  displayName: string;
+  city?: string;
+  state?: string;
+}
+
 interface CivicMapProps {
   tickets?: MapTicket[];
   center?: [number, number];
@@ -37,6 +48,9 @@ interface CivicMapProps {
   isPicker?: boolean;
   selectedCoordinates?: [number, number] | null;
   onCoordinatesChange?: (coords: [number, number]) => void;
+  className?: string;
+  onLocationClick?: (info: ClickedLocationInfo) => void;
+  clickedLocation?: ClickedLocationInfo | null;
 }
 
 export default function CivicMap({
@@ -46,14 +60,50 @@ export default function CivicMap({
   isPicker = false,
   selectedCoordinates,
   onCoordinatesChange,
+  className,
+  onLocationClick,
+  clickedLocation,
 }: CivicMapProps) {
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const markersLayerRef = useRef<LayerGroup | null>(null);
   const pickerMarkerRef = useRef<LeafletMarker | null>(null);
+  const userLocationMarkerRef = useRef<LeafletMarker | null>(null);
+  const clickedMarkerRef = useRef<LeafletMarker | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [gpsActive, setGpsActive] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [currentGpsCoords, setCurrentGpsCoords] = useState<[number, number] | null>(null);
+
+  // Trigger GPS Geolocation
+  const locateUser = useCallback((fly = true) => {
+    if (!('geolocation' in navigator)) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLoading(false);
+        setGpsActive(true);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCurrentGpsCoords([lat, lng]);
+
+        if (mapInstanceRef.current && fly) {
+          mapInstanceRef.current.flyTo([lat, lng], 15, { animate: true, duration: 1.2 });
+        }
+      },
+      (err) => {
+        setGpsLoading(false);
+        console.warn('Geolocation access not granted or unavailable:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }, []);
 
   // Initialize Map
   useEffect(() => {
@@ -71,29 +121,110 @@ export default function CivicMap({
         center: initialCenter,
         zoom: zoom,
         zoomControl: false,
-        scrollWheelZoom: !isPicker,
+        scrollWheelZoom: true,
       });
 
       L.control.zoom({ position: 'topright' }).addTo(map);
-      const initialTileLayer = L.tileLayer(MAP_TILES.url, {
+
+      L.tileLayer(MAP_TILES.url, {
         attribution: MAP_TILES.attribution,
         maxZoom: MAP_TILES.maxZoom,
       }).addTo(map);
+
       L.tileLayer(MAP_LABELS.url, {
         attribution: MAP_LABELS.attribution,
         maxZoom: MAP_LABELS.maxZoom,
       }).addTo(map);
 
       markersLayerRef.current = L.layerGroup().addTo(map);
-
       mapInstanceRef.current = map;
 
-      // Handle map clicks in picker mode
-      if (isPicker && onCoordinatesChange) {
-        map.on('click', (e) => {
-          onCoordinatesChange([e.latlng.lat, e.latlng.lng]);
+      // Handle map clicks (Takes clicks, points to exact location, reverse-geocodes)
+      map.on('click', async (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+
+        if (isPicker && onCoordinatesChange) {
+          onCoordinatesChange([lat, lng]);
+          return;
+        }
+
+        // Show immediate clicked marker with loading popup
+        if (clickedMarkerRef.current) {
+          clickedMarkerRef.current.remove();
+        }
+
+        const clickPinIcon = L.divIcon({
+          html: `
+            <div class="pin-drop-anim" style="position: relative; width: 34px; height: 42px; display: flex; flex-direction: column; align-items: center;">
+              <div style="background-color: #ea580c; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(234,88,12,0.6);">
+                <div style="transform: rotate(45deg); width: 8px; height: 8px; background: white; border-radius: 50%;"></div>
+              </div>
+            </div>
+          `,
+          className: 'civic-clicked-marker',
+          iconSize: [34, 42],
+          iconAnchor: [17, 42],
+          popupAnchor: [0, -42],
         });
-      }
+
+        const newMarker = L.marker([lat, lng], { icon: clickPinIcon }).addTo(map);
+        clickedMarkerRef.current = newMarker;
+
+        const loadingPopup = `
+          <div style="font-family: inherit; font-size: 12px; min-width: 180px; padding: 2px;">
+            <div style="font-weight: 700; color: #ea580c; margin-bottom: 2px;">📍 Pinning Location...</div>
+            <div style="color: #64748b; font-size: 11px;">Retrieving address from map...</div>
+          </div>
+        `;
+        newMarker.bindPopup(loadingPopup).openPopup();
+
+        // Reverse-geocode to get location name
+        try {
+          const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+          const data = await res.json();
+          const shortAddress = data.shortAddress || `Location [${lat.toFixed(4)}, ${lng.toFixed(4)}]`;
+          const displayName = data.displayName || shortAddress;
+
+          const locationInfo: ClickedLocationInfo = {
+            lat,
+            lng,
+            shortAddress,
+            displayName,
+            city: data.city,
+            state: data.state,
+          };
+
+          const popupContent = `
+            <div style="font-family: inherit; font-size: 12px; min-width: 210px; padding: 4px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 3px;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 800; color: #ea580c; letter-spacing: 0.5px;">📍 Selected Location</span>
+              </div>
+              <div style="font-weight: 800; color: #0f172a; font-size: 13px; line-height: 1.3; margin-bottom: 3px;">
+                ${shortAddress}
+              </div>
+              <div style="font-size: 11px; color: #64748b; line-height: 1.3; margin-bottom: 6px;">
+                ${displayName}
+              </div>
+              <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-bottom: 8px;">
+                ${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E
+              </div>
+              <a href="/report?lat=${lat}&lng=${lng}&address=${encodeURIComponent(shortAddress)}"
+                 style="display: inline-flex; align-items: center; justify-content: center; width: 100%; background: #ea580c; color: #ffffff; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-decoration: none; text-align: center; box-shadow: 0 2px 6px rgba(234,88,12,0.3);">
+                + Report Civic Problem Here
+              </a>
+            </div>
+          `;
+
+          newMarker.setPopupContent(popupContent);
+
+          if (onLocationClick) {
+            onLocationClick(locationInfo);
+          }
+        } catch (fetchErr) {
+          console.error('Reverse geocode error:', fetchErr);
+        }
+      });
 
       // Invalidate size to ensure clean rendering on all screen sizes
       setTimeout(() => {
@@ -114,12 +245,63 @@ export default function CivicMap({
     };
   }, []);
 
+  // Check if browser location is already permitted on mount
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'granted') {
+          locateUser(false);
+        }
+      }).catch(() => {
+        // Fallback for browsers without permissions API
+      });
+    }
+  }, [locateUser]);
+
+  // Center pan when center prop changes
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current) return;
     mapInstanceRef.current.flyTo(center, zoom, { animate: false });
   }, [mapLoaded, center[0], center[1], zoom]);
 
-  // Show one pin for each reported issue.
+  // Render User Current Location Pin (Pulsing GPS Marker)
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current || !currentGpsCoords) return;
+
+    import('leaflet').then((L) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.setLatLng(currentGpsCoords);
+      } else {
+        const gpsIcon = L.divIcon({
+          html: `
+            <div style="position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+              <div class="gps-pulse-effect" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: rgba(37, 99, 235, 0.4); pointer-events: none;"></div>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 2;"></div>
+            </div>
+          `,
+          className: 'civic-gps-marker',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        });
+
+        const gpsMarker = L.marker(currentGpsCoords, { icon: gpsIcon, zIndexOffset: 1000 }).addTo(map);
+        gpsMarker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; padding: 2px;">
+            <div style="font-weight: 800; color: #2563eb;">📍 Your Current Location</div>
+            <div style="font-size: 10px; color: #64748b;">GPS Enabled &amp; Pinpointed</div>
+          </div>
+        `);
+        userLocationMarkerRef.current = gpsMarker;
+      }
+    });
+  }, [mapLoaded, currentGpsCoords]);
+
+  // Render Tickets Layer
   useEffect(() => {
     if (!mapInstanceRef.current || !mapLoaded || !markersLayerRef.current) return;
 
@@ -166,7 +348,7 @@ export default function CivicMap({
     });
   }, [mapLoaded, tickets, isPicker, router]);
 
-  // Update Location Picker marker (for reporting grievances)
+  // Update Location Picker marker (for reporting grievances page)
   useEffect(() => {
     if (!mapInstanceRef.current || !mapLoaded || !isPicker) return;
 
@@ -206,11 +388,40 @@ export default function CivicMap({
     });
   }, [mapLoaded, selectedCoordinates, isPicker, onCoordinatesChange]);
 
+  // If clickedLocation is cleared externally
+  useEffect(() => {
+    if (!clickedLocation && clickedMarkerRef.current) {
+      clickedMarkerRef.current.remove();
+      clickedMarkerRef.current = null;
+    }
+  }, [clickedLocation]);
+
   return (
-    <div className="relative w-full h-full min-h-[480px] lg:min-h-[540px] rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-100">
+    <div className={`relative w-full h-full overflow-hidden shadow-sm border border-slate-200 bg-slate-100 ${className || 'min-h-[480px] lg:min-h-[540px] rounded-2xl'}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
+      {/* FLOATING "LOCATE ME" / CURRENT GPS POSITION BUTTON */}
+      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => locateUser(true)}
+          title="Point to your current location"
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/95 hover:bg-white text-slate-800 hover:text-blue-600 rounded-xl shadow-md border border-slate-200/90 backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
+        >
+          {gpsLoading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+          ) : (
+            <Locate className={`w-3.5 h-3.5 ${gpsActive ? 'text-blue-600' : 'text-slate-600'}`} />
+          )}
+          <span>{gpsLoading ? 'Locating…' : gpsActive ? 'Current Location Active' : 'Locate Me'}</span>
+          {gpsActive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+        </button>
+      </div>
 
+      {/* INFORMATIVE OVERLAY HINT */}
+      <div className="absolute bottom-2 left-2 z-[999] pointer-events-none bg-slate-900/75 backdrop-blur-xs text-white text-[10px] px-2.5 py-1 rounded-md font-medium">
+        💡 Click anywhere on map to pin &amp; identify address
+      </div>
     </div>
   );
 }

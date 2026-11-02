@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X } from 'lucide-react';
+import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 export default function Footer() {
@@ -50,48 +50,68 @@ export default function Footer() {
             <p className="text-xs sm:text-sm leading-relaxed text-slate-400 max-w-sm">
               Empowering citizens and municipal authorities with transparent grievance redressal, verifiable repair milestones, and geotagged civic accountability.
             </p>
-            <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-400">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Civic Docket
-              </span>
-              <span className="text-slate-600">•</span>
-              <span>Open Governance</span>
-            </div>
           </div>
 
-          {/* Section 2: Quick Links */}
-          <div className="space-y-3.5 md:pl-4 lg:pl-8">
+          {/* Section 2: Citizen Services & Resources (All 4 links in 1 row) */}
+          <div className="space-y-3.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-100 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
-              Quick Links
+              Citizen Services
             </h4>
-            <ul className="space-y-2.5 text-xs sm:text-sm">
-              <li>
-                <Link href="/report" className="group inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-                  <span className="text-slate-600 group-hover:text-teal-400 transition-colors">›</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">Report a Problem</span>
+            <div className="p-3 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 shadow-sm">
+              <div className="grid grid-cols-4 gap-2">
+                <Link
+                  href="/report"
+                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-emerald-500/40 text-center transition-all group hover:scale-105 min-h-[96px]"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                    <PlusCircle className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                    Report a Problem
+                  </span>
                 </Link>
-              </li>
-              <li>
-                <button type="button" onClick={() => setAboutOpen(true)} className="group inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer text-left">
-                  <span className="text-slate-600 group-hover:text-teal-400 transition-colors">›</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">About CityNova</span>
+
+                <button
+                  type="button"
+                  onClick={() => setAboutOpen(true)}
+                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-blue-500/40 text-center transition-all group hover:scale-105 min-h-[96px] cursor-pointer"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                    About CityNova
+                  </span>
                 </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => setHowOpen(true)} className="group inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer text-left">
-                  <span className="text-slate-600 group-hover:text-teal-400 transition-colors">›</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">How it works</span>
+
+                <button
+                  type="button"
+                  onClick={() => setHowOpen(true)}
+                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-amber-500/40 text-center transition-all group hover:scale-105 min-h-[96px] cursor-pointer"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                    <Lightbulb className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                    How it works
+                  </span>
                 </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => setRightsOpen(true)} className="group inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer text-left">
-                  <span className="text-slate-600 group-hover:text-teal-400 transition-colors">›</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">Citizen's Rights</span>
+
+                <button
+                  type="button"
+                  onClick={() => setRightsOpen(true)}
+                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-purple-500/40 text-center transition-all group hover:scale-105 min-h-[96px] cursor-pointer"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                    <Scale className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                    Citizen&apos;s Rights
+                  </span>
                 </button>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
 
           {/* Section 3: Your City */}
@@ -108,10 +128,6 @@ export default function Footer() {
               <p className="text-xs leading-relaxed text-slate-400">
                 Complaint activity and geotagged civic locations are actively monitored for this jurisdiction.
               </p>
-              <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Local SLA Tracking Active</span>
-              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import { hashCredential, normalizePhone, normalizeUsername, createLoginSession, getAuthSession, publicUser, setSessionCookie, clearSessionCookie, SESSION_COOKIE } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { normalizeIndianState, isIndianState, getKnownCoordinates } from '@/data/india-states-cities';
 
 let geocodeQueue = Promise.resolve();
 let nextGeocodeRequestAt = 0;
@@ -46,11 +47,33 @@ function recordLoginFailure(keys: string[]) {
 }
 
 async function getOrCreateCity(name: string, state: string) {
-  const normalizedKey = `${name.trim().toLocaleLowerCase('en')},${state.trim().toLocaleLowerCase('en')},india`;
+  const canonicalState = normalizeIndianState(state);
+  if (!canonicalState) {
+    throw new Error('INVALID_INDIAN_STATE');
+  }
+
+  const normalizedKey = `${name.trim().toLocaleLowerCase('en')},${canonicalState.toLocaleLowerCase('en')},india`;
   const existing = await prisma.city.findUnique({ where: { normalizedKey } });
   if (existing) return existing;
 
-  const query = new URLSearchParams({ city: name, state, country: 'India', format: 'jsonv2', limit: '1' });
+  // Check instant known coordinates database first
+  const knownCoord = getKnownCoordinates(name, canonicalState);
+  if (knownCoord) {
+    return prisma.city.upsert({
+      where: { normalizedKey },
+      update: {},
+      create: {
+        name: name.trim(),
+        state: canonicalState,
+        normalizedKey,
+        centerLat: knownCoord.lat,
+        centerLng: knownCoord.lng,
+      },
+    });
+  }
+
+  // Fallback to OpenStreetMap geocoding
+  const query = new URLSearchParams({ city: name, state: canonicalState, country: 'India', format: 'jsonv2', limit: '1' });
   const requestGeocode = async () => {
     const waitMs = Math.max(0, nextGeocodeRequestAt - Date.now());
     if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
@@ -74,7 +97,7 @@ async function getOrCreateCity(name: string, state: string) {
     update: {},
     create: {
       name: name.trim(),
-      state: state.trim(),
+      state: canonicalState,
       normalizedKey,
       centerLat: Number(match.lat),
       centerLng: Number(match.lon),
@@ -127,8 +150,11 @@ export async function POST(request: NextRequest) {
       const cityName = typeof body.city === 'string' ? body.city.trim() : '';
       const aadhaar = typeof body.aadhaar === 'string' ? body.aadhaar.replace(/\D/g, '') : '';
       if (name.length < 2 || name.length > 100) return jsonError('Enter your full name.', 400);
-      if (state.length < 2 || state.length > 80 || cityName.length < 2 || cityName.length > 100) return jsonError('Enter a valid state and city.', 400);
+      if (!isIndianState(state)) return jsonError('Please select a valid State or Union Territory of India.', 400);
+      if (cityName.length < 2 || cityName.length > 100) return jsonError('Enter a valid city name.', 400);
       if (accountType === 'CITIZEN' && !/^\d{12}$/.test(aadhaar)) return jsonError('Aadhaar number must contain 12 digits.', 400);
+
+      const canonicalState = normalizeIndianState(state) || state;
 
       const [existingUsername, existingAadhaar, existingEmployeeId] = await Promise.all([
         prisma.user.findUnique({ where: { username } }),
@@ -145,9 +171,14 @@ export async function POST(request: NextRequest) {
 
       let city;
       try {
-        city = await getOrCreateCity(cityName, state);
+        city = await getOrCreateCity(cityName, canonicalState);
       } catch (error) {
-        if (error instanceof Error && error.message === 'CITY_NOT_FOUND') return jsonError('We could not find that city in the selected state. Check the spelling and try again.', 422);
+        if (error instanceof Error && error.message === 'INVALID_INDIAN_STATE') {
+          return jsonError('Please enter or select a recognized State or Union Territory of India.', 400);
+        }
+        if (error instanceof Error && error.message === 'CITY_NOT_FOUND') {
+          return jsonError('We could not find that city in the selected state. Check the spelling and try again.', 422);
+        }
         return jsonError('City lookup is temporarily unavailable. Please try again shortly.', 503);
       }
 
@@ -159,7 +190,7 @@ export async function POST(request: NextRequest) {
           employeeId: accountType === 'AUTHORITY' ? employeeId : null,
           phoneHash: hashCredential(`phone:${phone}`),
           aadhaarHash: accountType === 'CITIZEN' ? hashCredential(`aadhaar:${aadhaar}`) : null,
-          state: state,
+          state: canonicalState,
           cityId: city.id,
           role: accountType,
         },
@@ -181,6 +212,23 @@ export async function POST(request: NextRequest) {
           ? 'Username, phone number, or Employee ID did not match an Authority Employee account.'
           : 'Username or phone number did not match a Citizen account.', 401);
       }
+
+      // If user selected state/city during login, verify that it matches their registered jurisdiction
+      const selectedState = typeof body.state === 'string' ? body.state.trim() : '';
+      const selectedCity = typeof body.city === 'string' ? body.city.trim() : '';
+      if (selectedState && isIndianState(selectedState)) {
+        const canonicalSelected = normalizeIndianState(selectedState);
+        const userStateCanonical = normalizeIndianState(user.city.state || user.state || '');
+        if (canonicalSelected && userStateCanonical && canonicalSelected.toLowerCase() !== userStateCanonical.toLowerCase()) {
+          recordLoginFailure(rateLimitKeys);
+          return jsonError(`This account is registered under ${user.city.name}, ${user.city.state}. Please select ${user.city.state}.`, 401);
+        }
+      }
+      if (selectedCity && user.city.name.toLowerCase() !== selectedCity.toLowerCase()) {
+        recordLoginFailure(rateLimitKeys);
+        return jsonError(`This account belongs to ${user.city.name}. Please select ${user.city.name} or leave city empty.`, 401);
+      }
+
       for (const key of rateLimitKeys) loginFailures.delete(key);
     } else {
       return jsonError('Choose sign in or create account.', 400);

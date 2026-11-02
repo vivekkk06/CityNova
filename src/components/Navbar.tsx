@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { PlusCircle, Menu, X, HelpCircle, LogOut, MessageSquare } from 'lucide-react';
+import { Home, PlusCircle, Menu, X, HelpCircle, LogOut, MessageSquare } from 'lucide-react';
 import AiCivicChatbot from '@/components/AiCivicChatbot';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/lib/i18n';
@@ -73,30 +73,40 @@ export default function Navbar() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
-            {showReportAction && <Link
-              href="/report"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-all hover:scale-105 border border-slate-700/60"
+            <Link
+              href="/"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs border hover:scale-105 ${
+                pathname === '/' || pathname === '/home'
+                  ? 'bg-slate-900 text-white border-slate-700/80 ring-1 ring-amber-400/30'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/60'
+              }`}
             >
-              <PlusCircle className="w-4 h-4 text-emerald-400" />
-              <span>{t('nav_report')}</span>
-            </Link>}
+              <Home className="w-4 h-4 text-amber-400" />
+              <span>Home</span>
+            </Link>
 
             <Link
               href="/posts"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${pathname === '/posts' ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-100'}`}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs border hover:scale-105 ${
+                pathname === '/posts'
+                  ? 'bg-slate-900 text-white border-slate-700/80 ring-1 ring-sky-400/30'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/60'
+              }`}
             >
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-4 h-4 text-sky-400" />
               <span>Posts</span>
             </Link>
 
-            {showGeneralActions && <button
-              type="button"
-              onClick={openAiChat}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 transition-all hover:scale-105 cursor-pointer shadow-2xs"
-            >
-              <HelpCircle className="w-4 h-4 text-blue-600" />
-              <span>{t('nav_ai_assistant')}</span>
-            </button>}
+            {showGeneralActions && (
+              <button
+                type="button"
+                onClick={openAiChat}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900/90 hover:bg-slate-800 text-white shadow-xs border border-slate-700/60 transition-all hover:scale-105 cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 text-purple-400" />
+                <span>Enquiry</span>
+              </button>
+            )}
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
@@ -124,39 +134,43 @@ export default function Navbar() {
               <LanguageSelector variant="full" />
             </div>}
 
-            {showReportAction && <Link
-              href="/report"
+            <Link
+              href="/"
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-xs border border-slate-700/60"
             >
               <span className="flex items-center gap-2.5">
-                <PlusCircle className="w-4 h-4 text-emerald-400" />
-                {t('nav_report')}
+                <Home className="w-4 h-4 text-amber-400" />
+                Home
               </span>
-            </Link>}
+            </Link>
 
             <Link
               href="/posts"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 p-3 rounded-xl text-sm font-bold ${pathname === '/posts' ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              Posts
-            </Link>
-
-            {showGeneralActions && <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openAiChat();
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-white text-slate-800 border border-slate-300 hover:bg-slate-50"
+              className="flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-xs border border-slate-700/60"
             >
               <span className="flex items-center gap-2.5">
-                <HelpCircle className="w-4 h-4 text-blue-600" />
-                {t('nav_ai_assistant')}
+                <MessageSquare className="w-4 h-4 text-sky-400" />
+                Posts
               </span>
-            </button>}
+            </Link>
+
+            {showGeneralActions && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openAiChat();
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-xs border border-slate-700/60 cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <HelpCircle className="w-4 h-4 text-purple-400" />
+                  Enquiry
+                </span>
+              </button>
+            )}
             <button type="button" onClick={() => void logout()} className="flex w-full items-center gap-2.5 rounded-xl p-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><LogOut className="h-4 w-4" /> Sign out</button>
           </div>
         )}
