@@ -3,9 +3,23 @@
 **Transparent and Interactive Civic Reporting and Accountable Governance
 System**\
 **Theme:** Governance & Civic Technology\
-**Team:** CityNova\
-**Team ID:** `HSC|GA|00013`\
-**State:** Goa, India
+**Team:** CityNova
+
+# Quick Start (run locally)
+
+**Stack**: Next.js (React, TypeScript, Tailwind CSS), Prisma ORM, SQLite, Leaflet maps. No Docker or external database is needed.
+
+**Requirements**: Node.js, npm, and an internet connection (for map tiles and package install).\
+
+`git clone https://github.com/vivekkk06/CityNova.git`\
+`cd CityNova`\
+`npm install`\
+`cp .env.example .env`      --> Windows PowerShell: copy .env.example .env\
+`npx prisma generate`\
+`npx prisma db push`\
+`npm run dev`
+
+Open http://localhost:3000 in your browser.
 
 ## Overview
 
@@ -73,7 +87,7 @@ The project presentation describes the following technical components:
 1.  A simple website with sections for citizens, authorities, city
     information, and an AI enquiry agent.
 2.  Reporting through text, images, voice notes, and geolocation.
-3.  Machine-learning-assisted classification of civic reports.
+3.  Classification of civic reports into progress-wise categories.
 4.  Community feedback and evidence to support report verification.
 5.  A time-stamped ledger for commitments, deadlines, progress, and
     completion evidence.
@@ -85,22 +99,6 @@ databases, and AI/ML tools, but does not specify their exact names.
 Update this section with the actual frameworks, languages, database,
 APIs, and model/tool names used in the repository.
 
-## Pilot Plan
-
-The proposed beta pilot begins with **five wards** and five issue
-categories:
-
--   Roads
--   Water
--   Garbage
--   Electricity
--   Safety
-
-The team intends to engage municipal authorities to validate reporting
-workflows and encourage participation. The pilot can be evaluated using
-measures such as report classification quality, duplicate detection,
-response times, evidence-backed resolution, repeat issues, and citizen
-usability.
 
 ## Expected Impact
 
@@ -119,7 +117,7 @@ usability.
 ## Feasibility, Risks, and Safeguards
 
 Key risks include fake or duplicate reports, privacy and security
-concerns, low official participation, biased ward comparisons, misuse of
+concerns, low official participation, misuse of
 civic scores, and outdated information.
 
 Potential safeguards include:
@@ -156,11 +154,6 @@ points of comparison:
 -   [CPGRAMS](https://pgportal.gov.in/) --- Government of India public
     grievance portal.
 -   [MyNeta](https://myneta.com/) --- civic accountability platform.
--   [Digital Personal Data Protection Act,
-    2023](https://www.indiacode.nic.in/) --- Indian data-protection
-    legislation.
--   [FixMyStreet](https://fixmystreet.org/) --- civic issue reporting;
-    [source code](https://github.com/mysociety/fixmystreet).
 -   [United Nations Sustainable Development
     Goals](https://sdgs.un.org/goals), particularly [SDG
     11](https://sdgs.un.org/goals/goal11) and [SDG
@@ -169,22 +162,9 @@ points of comparison:
 ## Project Status
 
 The team presentation describes a website prototype with an AI
-public-enquiry agent, ML-assisted report classification, and
-voice-related capabilities. The platform is still being improved,
-including work on reliability and usability. Check the current
-repository to confirm which features are implemented, partially
-implemented, or planned.
+public-enquiry agent, report classification, and
+voice-related capabilities. The platform is improved with respect to reliability and usability. 
 
-## Contributing
-
-Contributions, feedback, and suggestions are welcome. Before
-contributing:
-
-1.  Review the current project structure and setup instructions.
-2.  Open an issue to discuss a substantial feature or change.
-3.  Keep privacy, accessibility, safety, and verifiability in mind when
-    proposing changes.
-4.  Update documentation when behaviour or setup steps change.
 
 ## License
 
