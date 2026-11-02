@@ -313,8 +313,11 @@ export default function HomePage() {
             </div>
 
             {/* Quick Map Legend */}
-            <div className="flex items-center gap-3 text-[11px] text-slate-600 shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-[11px] text-slate-600 shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
               <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">Legend:</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600" /> Open
+              </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> In Progress
               </span>
@@ -323,6 +326,9 @@ export default function HomePage() {
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> Resolved
+              </span>
+              <span className="flex items-center gap-1.5 font-semibold text-orange-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-600 ring-2 ring-orange-200" /> Pinned Location
               </span>
             </div>
           </div>

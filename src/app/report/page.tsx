@@ -571,7 +571,10 @@ export default function ReportPage() {
                   </span>
                   <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-slate-600 font-medium">
                     <span className="flex items-center gap-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> In Progress / Open
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" /> Open
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> In Progress
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" /> Pending Sign-off
