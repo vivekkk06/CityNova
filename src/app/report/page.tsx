@@ -97,6 +97,17 @@ export default function ReportPage() {
   const [coordinates, setCoordinates] = useState<[number, number]>([20.5937, 78.9629]);
   const [hasPickedMapLocation, setHasPickedMapLocation] = useState(false);
   const [isGpsLoading, setIsGpsLoading] = useState<boolean>(false);
+  const [isAddressResolving, setIsAddressResolving] = useState<boolean>(false);
+  const [cityTickets, setCityTickets] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/tickets')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.tickets) setCityTickets(data.tickets);
+      })
+      .catch((err) => console.error('Failed to load tickets:', err));
+  }, []);
 
 
   // Submission State
@@ -132,6 +143,30 @@ export default function ReportPage() {
     if (audio) setAudioFile(audio);
   };
 
+  // Reverse-geocode coordinates and auto-fill the location entry box
+  const reverseGeocodeAndSetAddress = async (lat: number, lng: number) => {
+    setIsAddressResolving(true);
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const data = await res.json();
+      if (data.shortAddress) {
+        setStreetAddress(data.shortAddress);
+      } else if (data.displayName) {
+        setStreetAddress(data.displayName);
+      }
+    } catch (err) {
+      console.warn('Reverse geocode error:', err);
+    } finally {
+      setIsAddressResolving(false);
+    }
+  };
+
+  const handleCoordinatesChange = (coords: [number, number]) => {
+    setCoordinates(coords);
+    setHasPickedMapLocation(true);
+    reverseGeocodeAndSetAddress(coords[0], coords[1]);
+  };
+
   // 1-Tap GPS Locate Handler
   const handleUseCurrentLocation = () => {
     if (!('geolocation' in navigator)) {
@@ -146,16 +181,13 @@ export default function ReportPage() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoordinates([lat, lng]);
-        setStreetAddress((prev) =>
-          prev && !prev.includes('GPS')
-            ? `${prev} (GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)})`
-            : `GPS Location [${lat.toFixed(5)}, ${lng.toFixed(5)}]`
-        );
+        setHasPickedMapLocation(true);
+        reverseGeocodeAndSetAddress(lat, lng);
       },
       (err) => {
         setIsGpsLoading(false);
         console.warn('Geolocation error:', err);
-        alert('Could not retrieve GPS location. Please type your street address or landmark.');
+        alert('Could not retrieve GPS location. Please click on the map to pin your location.');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -266,7 +298,7 @@ export default function ReportPage() {
 
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
             <Clock className="w-3 h-3 text-emerald-600" />
-            <span>1-Minute Fast Filing &bull; १ मिनिटात तक्रार</span>
+            <span>1-Minute Fast Filing</span>
           </span>
         </div>
 
@@ -512,18 +544,55 @@ export default function ReportPage() {
               </div>
 
               <div className="pt-1 space-y-2">
-                <p className="text-xs font-bold text-blue-800">Choose Exact Location on Map <span className="text-red-600">*</span></p>
-                <p className="text-xs text-slate-500">Click the map or drag the pin to the complaint location. This step is required.</p>
-                <div className="h-72 w-full rounded-xl overflow-hidden border border-slate-300 shadow-inner">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <p className="text-xs font-bold text-blue-800">
+                      Choose Exact Location on Map <span className="text-red-600">*</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Click the map or drag the pin. The address will automatically be entered above.
+                    </p>
+                  </div>
+                  {isAddressResolving && (
+                    <span className="text-[11px] font-bold text-orange-600 flex items-center gap-1.5">
+                      <span className="w-3 h-3 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                      Auto-entering location address…
+                    </span>
+                  )}
+                </div>
+
+                {/* City Reports Count & Status Pin Color Legend */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs">
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-orange-600" />
+                    <span>
+                      {cityTickets.length} Reported Issue{cityTickets.length === 1 ? '' : 's'} in {user?.city?.name || 'this city'}
+                    </span>
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-slate-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> In Progress / Open
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" /> Pending Sign-off
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" /> Resolved
+                    </span>
+                    <span className="flex items-center gap-1 font-bold text-orange-700">
+                      <span className="w-2.5 h-2.5 rounded-full bg-orange-600 ring-2 ring-orange-200 inline-block" /> Your New Pin
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-80 w-full rounded-xl overflow-hidden border border-slate-300 shadow-inner">
                   <CivicMap
+                    tickets={cityTickets}
                     center={coordinates}
                     zoom={14}
                     isPicker={true}
                     selectedCoordinates={coordinates}
-                    onCoordinatesChange={(coords) => {
-                      setCoordinates(coords);
-                      setHasPickedMapLocation(true);
-                    }}
+                    onCoordinatesChange={handleCoordinatesChange}
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] px-1">

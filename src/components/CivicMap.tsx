@@ -280,37 +280,60 @@ export default function CivicMap({
 
       markersLayer.clearLayers();
 
-      if (isPicker) return;
-
       tickets.forEach((ticket) => {
         let pinColor = '#dc2626'; // Red for open/critical
 
         if (ticket.status === 'IN_PROGRESS' || ticket.status === 'ASSIGNED') {
           pinColor = '#d97706'; // Amber
-        } else if (ticket.status === 'PROVISIONALLY_RESOLVED') {
+        } else if (ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL') {
           pinColor = '#7c3aed'; // Violet
         } else if (ticket.status === 'RESOLVED' || ticket.status === 'CLOSED') {
           pinColor = '#059669'; // Green
         }
 
         const customHtml = `
-          <div style="background-color: ${pinColor}; width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.35); cursor: pointer;" class="${
+          <div style="background-color: ${pinColor}; width: 24px; height: 24px; border-radius: 50%; border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.35); cursor: pointer;" class="${
             ticket.urgency === 'CRITICAL' ? 'pulse-critical' : ''
           }">
-            <span style="width: 7px; height: 7px; background: white; border-radius: 50%;"></span>
+            <span style="width: 6px; height: 6px; background: white; border-radius: 50%;"></span>
           </div>
         `;
 
         const icon = L.divIcon({
           html: customHtml,
           className: 'civic-marker-pin',
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         });
 
         const marker = L.marker([ticket.latitude, ticket.longitude], { icon });
 
-        marker.on('click', () => router.push(`/ticket/${ticket.caseId}`));
+        if (isPicker) {
+          const statusLabel =
+            ticket.status === 'IN_PROGRESS' || ticket.status === 'ASSIGNED'
+              ? 'In Progress'
+              : ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL'
+              ? 'Pending Sign-off'
+              : ticket.status === 'RESOLVED' || ticket.status === 'CLOSED'
+              ? 'Resolved'
+              : 'Open';
+
+          marker.bindPopup(`
+            <div style="font-family: inherit; font-size: 12px; min-width: 170px; padding: 2px;">
+              <span style="font-size: 10px; font-weight: 800; color: ${pinColor}; text-transform: uppercase;">
+                ● ${statusLabel}
+              </span>
+              <div style="font-weight: 700; color: #0f172a; font-size: 12px; margin-top: 3px; line-height: 1.3;">
+                ${ticket.title}
+              </div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                ${ticket.category} &bull; #${ticket.caseId}
+              </div>
+            </div>
+          `);
+        } else {
+          marker.on('click', () => router.push(`/ticket/${ticket.caseId}`));
+        }
 
         markersLayer.addLayer(marker);
       });
@@ -344,6 +367,7 @@ export default function CivicMap({
           pickerMarkerRef.current = L.marker(selectedCoordinates, {
             icon: pickerIcon,
             draggable: true,
+            zIndexOffset: 2000,
           }).addTo(map);
 
           pickerMarkerRef.current.on('dragend', (e) => {
