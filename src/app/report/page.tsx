@@ -604,12 +604,6 @@ export default function ReportPage() {
               </div>
             </div>
 
-            {/* SECTION 3: ACCOUNT & SUBMISSION */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><User className="h-4 w-4 text-emerald-600" />Complaint submitted as {user?.name || 'your account'}</h2>
-              <p className="mt-1 text-xs text-slate-500">Your account phone number and city are attached securely to this report.</p>
-            </div>
-
               {/* DUPLICATE WARNING MODAL / INLINE NOTICE */}
               {duplicateWarning && duplicateWarning.length > 0 && (
                 <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3">
@@ -667,10 +661,10 @@ export default function ReportPage() {
                     {isSubmitting
                       ? 'Submitting Grievance...'
                       : language === 'kok'
-                      ? '🚀 १ मिनिटात तक्रार नोंदवा (Submit Grievance)'
+                      ? '🚀 तक्रार नोंदवा (Submit Grievance)'
                       : language === 'hi'
-                      ? '🚀 १ मिनट में शिकायत दर्ज करें (Submit Grievance)'
-                      : '🚀 Submit Grievance (1-Minute Fast Filing)'}
+                      ? '🚀 शिकायत दर्ज करें (Submit Grievance)'
+                      : '🚀 Submit Grievance'}
                   </span>
                 </button>
               </div>
