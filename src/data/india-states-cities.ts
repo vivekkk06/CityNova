@@ -311,3 +311,4 @@ export function getKnownCoordinates(cityName: string, stateName: string): Indian
   const cityKey = `${cityName.trim().toLowerCase()},${stateName.trim().toLowerCase()}`;
   return KNOWN_CITY_COORDINATES[cityKey] || null;
 }
+
