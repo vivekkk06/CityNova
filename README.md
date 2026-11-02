@@ -1,11 +1,9 @@
-# CityNova --- CivicLens
+# CityNova 
 
 **Transparent and Interactive Civic Reporting and Accountable Governance
 System**\
 **Theme:** Governance & Civic Technology\
 **Team:** CityNova\
-**Team ID:** `HSC|GA|00013`\
-**State:** Goa, India
 
 ## Overview
 
