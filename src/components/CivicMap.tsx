@@ -171,15 +171,7 @@ export default function CivicMap({
         const newMarker = L.marker([lat, lng], { icon: clickPinIcon }).addTo(map);
         clickedMarkerRef.current = newMarker;
 
-        const loadingPopup = `
-          <div style="font-family: inherit; font-size: 12px; min-width: 180px; padding: 2px;">
-            <div style="font-weight: 700; color: #ea580c; margin-bottom: 2px;">📍 Pinning Location...</div>
-            <div style="color: #64748b; font-size: 11px;">Retrieving address from map...</div>
-          </div>
-        `;
-        newMarker.bindPopup(loadingPopup).openPopup();
-
-        // Reverse-geocode to get location name
+        // Reverse-geocode in background to get location name for sidebar
         try {
           const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
           const data = await res.json();
@@ -194,29 +186,6 @@ export default function CivicMap({
             city: data.city,
             state: data.state,
           };
-
-          const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; min-width: 210px; padding: 4px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 3px;">
-                <span style="font-size: 10px; text-transform: uppercase; font-weight: 800; color: #ea580c; letter-spacing: 0.5px;">📍 Selected Location</span>
-              </div>
-              <div style="font-weight: 800; color: #0f172a; font-size: 13px; line-height: 1.3; margin-bottom: 3px;">
-                ${shortAddress}
-              </div>
-              <div style="font-size: 11px; color: #64748b; line-height: 1.3; margin-bottom: 6px;">
-                ${displayName}
-              </div>
-              <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-bottom: 8px;">
-                ${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E
-              </div>
-              <a href="/report?lat=${lat}&lng=${lng}&address=${encodeURIComponent(shortAddress)}"
-                 style="display: inline-flex; align-items: center; justify-content: center; width: 100%; background: #ea580c; color: #ffffff; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-decoration: none; text-align: center; box-shadow: 0 2px 6px rgba(234,88,12,0.3);">
-                + Report Civic Problem Here
-              </a>
-            </div>
-          `;
-
-          newMarker.setPopupContent(popupContent);
 
           if (onLocationClick) {
             onLocationClick(locationInfo);

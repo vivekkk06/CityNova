@@ -359,15 +359,6 @@ export default function HomePage() {
                       {clickedLocation.lat.toFixed(5)}° N, {clickedLocation.lng.toFixed(5)}° E
                     </span>
                   </div>
-                  <div className="pt-1 flex items-center gap-2">
-                    <Link
-                      href={`/report?lat=${clickedLocation.lat}&lng=${clickedLocation.lng}&address=${encodeURIComponent(clickedLocation.shortAddress)}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition"
-                    >
-                      <PlusCircle className="w-3 h-3" />
-                      <span>Report Issue Here</span>
-                    </Link>
-                  </div>
                 </div>
               )}
 
