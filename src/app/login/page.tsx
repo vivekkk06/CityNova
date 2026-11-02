@@ -22,8 +22,8 @@ export default function LoginPage() {
     name: '',
     phone: '',
     aadhaar: '',
-    state: 'Uttar Pradesh',
-    city: 'Mau',
+    state: '',
+    city: '',
     username: '',
     employeeId: '',
   });
@@ -44,14 +44,12 @@ export default function LoginPage() {
     return getCitiesForState(canonicalState);
   }, [canonicalState]);
 
-  // When state changes, update canonical casing if matched
+  // When state changes, update state and reset city so user can pick from the dropdown
   const handleStateChange = (inputVal: string) => {
-    const verified = normalizeIndianState(inputVal);
     setForm((current) => ({
       ...current,
       state: inputVal,
-      // If changed to a valid state and current city isn't in it, reset city
-      city: verified ? (getCitiesForState(verified)[0] || '') : '',
+      city: '',
     }));
     setIsCustomCity(false);
     setCustomCityText('');
@@ -78,16 +76,23 @@ export default function LoginPage() {
 
     // Check state validity if provided
     if (form.state && !isValidState) {
-      setError(`"${form.state}" is not a recognized Indian State or Union Territory. Please choose from the list.`);
+      setError(`"${form.state}" is not a recognized Indian State or Union Territory. Please enter a valid Indian State.`);
       setBusy(false);
       return;
     }
 
     const finalCity = isCustomCity ? customCityText.trim() : form.city.trim();
-    if (mode === 'register' && !finalCity) {
-      setError('Please select or enter your city.');
-      setBusy(false);
-      return;
+    if (mode === 'register') {
+      if (!form.state.trim() || !isValidState) {
+        setError('Please enter a valid State or Union Territory of India.');
+        setBusy(false);
+        return;
+      }
+      if (!finalCity) {
+        setError('Please select your city from the dropdown list.');
+        setBusy(false);
+        return;
+      }
     }
 
     try {
@@ -218,39 +223,35 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* STATE & CITY VERIFICATION SECTION */}
+              {/* STATE & CITY SECTION */}
               <div className="pt-1">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-orange-600" />
-                      <span>{mode === 'register' ? 'Select Jurisdiction' : 'City & State (Jurisdiction)'}</span>
-                    </span>
-                    {isValidState ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        Verified State
-                      </span>
-                    ) : form.state.trim() ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                        <AlertCircle className="w-3 h-3 text-amber-600" />
-                        Invalid State
-                      </span>
-                    ) : null}
-                  </div>
-
                   <div className="grid gap-3 sm:grid-cols-2">
                     {/* State Input with Datalist of Indian States & Verification */}
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">
-                        State of India {mode === 'register' && <span className="text-red-500">*</span>}
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          State of India {mode === 'register' && <span className="text-red-500">*</span>}
+                        </label>
+                        {isValidState ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Verified State
+                          </span>
+                        ) : form.state.trim() ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                            <AlertCircle className="w-3 h-3 text-amber-600" />
+                            Invalid State
+                          </span>
+                        ) : null}
+                      </div>
+
                       <input
                         type="text"
                         list="indian-states-datalist"
                         value={form.state}
                         onChange={(e) => handleStateChange(e.target.value)}
-                        placeholder="Type or pick state..."
+                        placeholder="Enter any Indian state..."
                         required={mode === 'register'}
                         className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-900 bg-white outline-none transition focus:ring-2 ${
                           isValidState
@@ -293,7 +294,9 @@ export default function LoginPage() {
                           disabled
                           className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-400 outline-none cursor-not-allowed"
                         >
-                          <option>Enter verified Indian State first...</option>
+                          <option>
+                            {form.state.trim() ? 'Enter a valid Indian State first...' : 'Enter state first...'}
+                          </option>
                         </select>
                       )}
                     </div>
