@@ -26,6 +26,7 @@ export default function LoginPage() {
     city: '',
     username: '',
     employeeId: '',
+    designation: '',
   });
 
   const [isCustomCity, setIsCustomCity] = useState(false);
@@ -214,7 +215,28 @@ export default function LoginPage() {
               {mode === 'register' && field('name', 'Full Name', 'text', 'name', 'e.g. Ramesh Kumar')}
               {field('username', 'Username', 'text', 'username', 'e.g. ramesh_k')}
               {field('phone', 'Phone Number', 'tel', 'tel', '10-digit Indian Mobile Number')}
-              {accountType === 'authority' && field('employeeId', 'Employee ID', 'text', 'off', 'e.g. EMP-UP-1029')}
+              {accountType === 'authority' && (
+                <>
+                  {field('employeeId', 'Employee ID', 'text', 'off', 'e.g. EMP-UP-1029')}
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold text-slate-700 block">
+                      Authority Designation {mode === 'register' && <span className="text-red-500">*</span>}
+                    </span>
+                    <select
+                      value={form.designation}
+                      onChange={(e) => setForm((c) => ({ ...c, designation: e.target.value }))}
+                      required={mode === 'register'}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                    >
+                      <option value="">-- Choose Designation --</option>
+                      <option value="District Magistrate (DM)">District Magistrate (DM)</option>
+                      <option value="Sub-divisional Magistrate (SDM)">Sub-divisional Magistrate (SDM)</option>
+                      <option value="Mayor">Mayor</option>
+                      <option value="Commissioner of Police (CP)">Commissioner of Police (CP)</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               {mode === 'register' && accountType === 'citizen' && (
                 <>

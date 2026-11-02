@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, PlusCircle, Menu, X, HelpCircle, LogOut, MessageSquare } from 'lucide-react';
+import { Home, PlusCircle, Menu, X, HelpCircle, LogOut, MessageSquare, User } from 'lucide-react';
 import AiCivicChatbot from '@/components/AiCivicChatbot';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/lib/i18n';
@@ -41,7 +41,9 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <span>Signed in as <span className="font-bold text-white">{user?.username || 'citizen'}</span></span>
+            <Link href="/profile" className="hover:text-emerald-300 transition-colors flex items-center gap-1 group" title="View your profile">
+              <span>Signed in as <span className="font-bold text-white group-hover:underline underline-offset-2">{user?.username || 'citizen'}</span></span>
+            </Link>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-amber-300 border border-slate-700">
               {isAuthority ? 'Authority' : 'Citizen'}
             </span>
@@ -107,6 +109,18 @@ export default function Navbar() {
                 <span>Enquiry</span>
               </button>
             )}
+
+            <Link
+              href="/profile"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs border hover:scale-105 ${
+                pathname === '/profile'
+                  ? 'bg-slate-900 text-white border-slate-700/80 ring-1 ring-emerald-400/30'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/60'
+              }`}
+            >
+              <User className="w-4 h-4 text-emerald-400" />
+              <span>Profile</span>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
@@ -171,6 +185,17 @@ export default function Navbar() {
                 </span>
               </button>
             )}
+
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-xs border border-slate-700/60"
+            >
+              <span className="flex items-center gap-2.5">
+                <User className="w-4 h-4 text-emerald-400" />
+                Profile
+              </span>
+            </Link>
             <button type="button" onClick={() => void logout()} className="flex w-full items-center gap-2.5 rounded-xl p-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"><LogOut className="h-4 w-4" /> Sign out</button>
           </div>
         )}

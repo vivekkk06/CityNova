@@ -182,7 +182,12 @@ export async function POST(request: NextRequest) {
         return jsonError('City lookup is temporarily unavailable. Please try again shortly.', 503);
       }
 
-      user = await prisma.user.create({
+      const designation = typeof body.designation === 'string' ? body.designation.trim() : null;
+      const email = typeof body.email === 'string' ? body.email.trim() : null;
+      const dob = typeof body.dob === 'string' ? body.dob.trim() : null;
+      const bio = typeof body.bio === 'string' ? body.bio.trim() : null;
+
+      user = await (prisma.user as any).create({
         data: {
           name,
           phone,
@@ -193,6 +198,10 @@ export async function POST(request: NextRequest) {
           state: canonicalState,
           cityId: city.id,
           role: accountType,
+          designation,
+          email,
+          dob,
+          bio,
         },
         include: { city: true },
       });

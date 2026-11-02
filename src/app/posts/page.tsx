@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
+import { MapPin, MessageCircle, ThumbsUp, Bookmark } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/auth-context';
@@ -46,6 +46,34 @@ export default function PostsPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [reactionBusy, setReactionBusy] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState<string | null>(null);
+  const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        setSavedPostIds(JSON.parse(stored));
+      } else {
+        const fallback = localStorage.getItem('citynova_saved_posts');
+        if (fallback) setSavedPostIds(JSON.parse(fallback));
+      }
+    } catch {}
+  }, [user?.id]);
+
+  const toggleSavePost = (postId: string) => {
+    setSavedPostIds((prev) => {
+      const updated = prev.includes(postId)
+        ? prev.filter((id) => id !== postId)
+        : [...prev, postId];
+      try {
+        const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+        localStorage.setItem(key, JSON.stringify(updated));
+        localStorage.setItem('citynova_saved_posts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
   const orderedPosts = [...posts].sort((a, b) =>
     statusOrder(a.status) - statusOrder(b.status) ||
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -157,21 +185,39 @@ export default function PostsPage() {
                   )}
                 </div>
 
-                {canInteract ? <button
-                  type="button"
-                  onClick={() => void toggleReaction(post)}
-                  disabled={reactionBusy === post.id}
-                  aria-pressed={post.reactedByMe}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-bold transition-colors disabled:opacity-60 ${post.reactedByMe ? 'border-blue-300 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  +1 <span>{post.plusOneCount}</span>
-                </button> : (
-                  <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-bold text-slate-600">
-                    <ThumbsUp className="h-4 w-4" />
-                    +1 <span>{post.plusOneCount}</span>
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {canInteract ? (
+                    <button
+                      type="button"
+                      onClick={() => void toggleReaction(post)}
+                      disabled={reactionBusy === post.id}
+                      aria-pressed={post.reactedByMe}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-bold transition-colors disabled:opacity-60 ${post.reactedByMe ? 'border-blue-300 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      +1 <span>{post.plusOneCount}</span>
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-bold text-slate-600">
+                      <ThumbsUp className="h-4 w-4" />
+                      +1 <span>{post.plusOneCount}</span>
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => toggleSavePost(post.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-bold transition-all ${
+                      savedPostIds.includes(post.id)
+                        ? 'border-amber-300 bg-amber-50 text-amber-800 shadow-xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    title={savedPostIds.includes(post.id) ? 'Remove from Saved' : 'Save post to your Profile'}
+                  >
+                    <Bookmark className={`h-4 w-4 ${savedPostIds.includes(post.id) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                    <span>{savedPostIds.includes(post.id) ? 'Saved' : 'Save'}</span>
+                  </button>
+                </div>
 
                 <section className="border-t border-slate-100 pt-4">
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><MessageCircle className="h-4 w-4" />Comments ({post.comments.length})</h3>

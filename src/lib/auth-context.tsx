@@ -8,6 +8,10 @@ export interface SignedInUser {
   username: string | null;
   role: string;
   phone: string | null;
+  email?: string | null;
+  dob?: string | null;
+  bio?: string | null;
+  designation?: string | null;
   state: string | null;
   city: { id: string; name: string; state: string; centerLat: number; centerLng: number } | null;
 }

@@ -22,6 +22,9 @@ model User {
   cityId        String?
   city          City?            @relation(fields: [cityId], references: [id], onDelete: SetNull)
   email         String?
+  designation   String?
+  dob           String?
+  bio           String?
   role          String           @default("CITIZEN")
   sessions      Session[]
   tickets       Ticket[]
