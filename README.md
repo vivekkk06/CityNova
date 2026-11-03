@@ -5,7 +5,7 @@ System**\
 **Theme:** Governance & Civic Technology\
 **Team:** CityNova
 
-# Quick Start (run locally)
+## Quick Start (run locally)
 
 **Stack**: Next.js (React, TypeScript, Tailwind CSS), Prisma ORM, SQLite, Leaflet maps. No Docker or external database is needed.
 
@@ -20,6 +20,30 @@ System**\
 `npm run dev`
 
 Open http://localhost:3000 in your browser.
+
+## Demo Accounts(for testing)
+
+The database ships with ready-made accounts so you can test the site without registering. There is no password: sign in with the username and phone number.
+
+### Citizen accounts
+Choose **Citizen** on the login page.
+
+| Name | Username | Phone |
+|---|---|---|
+| Ujjwal Mishra | vivek1 | 8619860851 |
+| Yuvraj Singh | vivek2 | 8619860852 |
+| Rudra Rohra | vivek3 | 8619860853 |
+| Vivek Badgujar | vivek4 | 8619860854 |
+| Kini Arya | vivek5 | 8619860855 |
+
+### Authority account
+Choose **Authority** on the login page.
+
+| Name | Username | Phone | Employee ID | Designation
+|---|---|---|---|---|
+| Saksham Pandey | saksham1 | 9259234046 | 823456781239925 | CP
+
+You can also register a new account from the sign-up page. The numbers above are demo data only.
 
 ## Overview
 
