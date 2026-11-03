@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -95,10 +95,12 @@ export default function ReportPage() {
   // City Location State
   const [streetAddress, setStreetAddress] = useState<string>('');
   const [coordinates, setCoordinates] = useState<[number, number]>([20.5937, 78.9629]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([20.5937, 78.9629]);
   const [hasPickedMapLocation, setHasPickedMapLocation] = useState(false);
   const [isGpsLoading, setIsGpsLoading] = useState<boolean>(false);
   const [isAddressResolving, setIsAddressResolving] = useState<boolean>(false);
   const [cityTickets, setCityTickets] = useState<any[]>([]);
+  const reverseGeocodeAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetch('/api/tickets')
@@ -116,7 +118,11 @@ export default function ReportPage() {
   const [submittedCaseId, setSubmittedCaseId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.city) setCoordinates([user.city.centerLat, user.city.centerLng]);
+    if (user?.city) {
+      const cityCoords: [number, number] = [user.city.centerLat, user.city.centerLng];
+      setMapCenter(cityCoords);
+      setCoordinates(cityCoords);
+    }
   }, [user?.city?.id, user?.city?.centerLat, user?.city?.centerLng]);
 
   useEffect(() => {
@@ -144,28 +150,42 @@ export default function ReportPage() {
   };
 
   // Reverse-geocode coordinates and auto-fill the location entry box
-  const reverseGeocodeAndSetAddress = async (lat: number, lng: number) => {
+  const reverseGeocodeAndSetAddress = useCallback(async (lat: number, lng: number) => {
+    if (reverseGeocodeAbortRef.current) {
+      reverseGeocodeAbortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    reverseGeocodeAbortRef.current = abortController;
+
     setIsAddressResolving(true);
     try {
-      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`, {
+        signal: abortController.signal,
+      });
       const data = await res.json();
       if (data.shortAddress) {
         setStreetAddress(data.shortAddress);
       } else if (data.displayName) {
         setStreetAddress(data.displayName);
       }
-    } catch (err) {
-      console.warn('Reverse geocode error:', err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.warn('Reverse geocode error:', err);
+      }
     } finally {
-      setIsAddressResolving(false);
+      if (reverseGeocodeAbortRef.current === abortController) {
+        setIsAddressResolving(false);
+      }
     }
-  };
+  }, []);
 
-  const handleCoordinatesChange = (coords: [number, number]) => {
+  // Map click or drag pin handler:
+  // Updates coordinates and address WITHOUT re-centering the map viewport or causing a refresh
+  const handleCoordinatesChange = useCallback((coords: [number, number]) => {
     setCoordinates(coords);
     setHasPickedMapLocation(true);
     reverseGeocodeAndSetAddress(coords[0], coords[1]);
-  };
+  }, [reverseGeocodeAndSetAddress]);
 
   // 1-Tap GPS Locate Handler
   const handleUseCurrentLocation = () => {
@@ -181,6 +201,7 @@ export default function ReportPage() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoordinates([lat, lng]);
+        setMapCenter([lat, lng]); // Move camera smoothly only when user explicitly asks to detect GPS
         setHasPickedMapLocation(true);
         reverseGeocodeAndSetAddress(lat, lng);
       },
@@ -591,10 +612,10 @@ export default function ReportPage() {
                 <div className="h-80 w-full rounded-xl overflow-hidden border border-slate-300 shadow-inner">
                   <CivicMap
                     tickets={cityTickets}
-                    center={coordinates}
+                    center={mapCenter}
                     zoom={14}
                     isPicker={true}
-                    selectedCoordinates={coordinates}
+                    selectedCoordinates={hasPickedMapLocation ? coordinates : null}
                     onCoordinatesChange={handleCoordinatesChange}
                   />
                 </div>

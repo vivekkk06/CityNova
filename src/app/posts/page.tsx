@@ -12,6 +12,8 @@ interface PostComment {
   body: string;
   createdAt: string;
   authorUsername: string;
+  authorName?: string;
+  authorAvatarUrl?: string | null;
 }
 
 interface CityPost {
@@ -24,6 +26,8 @@ interface CityPost {
   addressDescription: string;
   createdAt: string;
   authorUsername: string;
+  authorName?: string;
+  authorAvatarUrl?: string | null;
   plusOneCount: number;
   reactedByMe: boolean;
   comments: PostComment[];
@@ -162,10 +166,24 @@ export default function PostsPage() {
           {orderedPosts.map((post) => (
             <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="space-y-4 p-5 sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">@{post.authorUsername}</p>
-                    <p className="mt-1 text-xs text-slate-500">{new Date(post.createdAt).toLocaleString()}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-slate-200">
+                      {post.authorAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={post.authorAvatarUrl}
+                          alt={post.authorUsername}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{(post.authorName || post.authorUsername).slice(0, 2).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">@{post.authorUsername}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{new Date(post.createdAt).toLocaleString()}</p>
+                    </div>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{post.status.replaceAll('_', ' ')}</span>
                 </div>
@@ -226,7 +244,21 @@ export default function PostsPage() {
                       {post.comments.map((comment) => (
                         <div key={comment.id} className="rounded-xl bg-slate-50 px-3.5 py-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-slate-800">@{comment.authorUsername}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[9px] shrink-0 overflow-hidden border border-slate-200">
+                                {comment.authorAvatarUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={comment.authorAvatarUrl}
+                                    alt={comment.authorUsername}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{(comment.authorName || comment.authorUsername).slice(0, 2).toUpperCase()}</span>
+                                )}
+                              </div>
+                              <span className="text-xs font-bold text-slate-800">@{comment.authorUsername}</span>
+                            </div>
                             <time className="text-[11px] text-slate-500">{new Date(comment.createdAt).toLocaleString()}</time>
                           </div>
                           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{comment.body}</p>

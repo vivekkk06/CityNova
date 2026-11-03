@@ -27,6 +27,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent Caret Browsing blinking pipe cursor from appearing on static text */
+*:not(input):not(textarea):not([contenteditable="true"]) {
+  caret-color: transparent !important;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  caret-color: auto !important;
+}
+
 /* Official Tricolor Accent Hairline */
 .tricolor-bar {
   height: 4px;
@@ -88,9 +99,59 @@ body {
 .leaflet-container {
   width: 100%;
   height: 100%;
-  border-radius: 0.75rem;
+  border-radius: inherit;
   z-index: 10;
   font-family: inherit;
+}
+
+.picker-marker-container,
+.civic-clicked-marker,
+.civic-marker-pin,
+.civic-gps-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Refined Leaflet Attribution Bar */
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.78) !important;
+  color: #94a3b8 !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-top-left-radius: 8px !important;
+  font-size: 9px !important;
+  padding: 2px 8px !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.leaflet-control-attribution a {
+  color: #60a5fa !important;
+  text-decoration: none !important;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline !important;
+}
+
+/* Refined Leaflet Zoom Controls */
+.leaflet-bar {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+}
+
+.leaflet-bar a {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  transition: all 0.15s ease !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #ffffff !important;
+  color: #2563eb !important;
 }
 
 /* Pulse keyframe */

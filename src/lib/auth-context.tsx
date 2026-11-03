@@ -12,6 +12,8 @@ export interface SignedInUser {
   dob?: string | null;
   bio?: string | null;
   designation?: string | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   state: string | null;
   city: { id: string; name: string; state: string; centerLat: number; centerLng: number } | null;
 }

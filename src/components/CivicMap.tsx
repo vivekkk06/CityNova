@@ -53,6 +53,25 @@ interface CivicMapProps {
   clickedLocation?: ClickedLocationInfo | null;
 }
 
+// High-precision Civic Picker Pin with sharp downward needle tip touching the exact coordinate
+function createPickerIcon(L: any) {
+  return L.divIcon({
+    html: `
+      <div class="civic-custom-picker-pin pin-drop-anim" style="position: relative; width: 36px; height: 50px; display: flex; flex-direction: column; align-items: center; user-select: none; cursor: grab;">
+        <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45));">
+          <path d="M18 1.5C8.89 1.5 1.5 8.89 1.5 18C1.5 29.5 18 44.5 18 44.5C18 44.5 34.5 29.5 34.5 18C34.5 8.89 27.11 1.5 18 1.5Z" fill="#ea580c" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="18" cy="18" r="6" fill="#ffffff"/>
+        </svg>
+        <div style="width: 10px; height: 3px; background: rgba(0,0,0,0.35); border-radius: 50%; margin-top: -1px;"></div>
+      </div>
+    `,
+    className: 'picker-marker-container',
+    iconSize: [36, 50],
+    iconAnchor: [18, 47],
+    popupAnchor: [0, -47],
+  });
+}
+
 export default function CivicMap({
   tickets = [],
   center = [20.5937, 78.9629],
@@ -67,10 +86,23 @@ export default function CivicMap({
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const leafletRef = useRef<any>(null);
   const markersLayerRef = useRef<LayerGroup | null>(null);
   const pickerMarkerRef = useRef<LeafletMarker | null>(null);
   const userLocationMarkerRef = useRef<LeafletMarker | null>(null);
   const clickedMarkerRef = useRef<LeafletMarker | null>(null);
+
+  const onCoordinatesChangeRef = useRef(onCoordinatesChange);
+  useEffect(() => {
+    onCoordinatesChangeRef.current = onCoordinatesChange;
+  }, [onCoordinatesChange]);
+
+  const isPickerRef = useRef(isPicker);
+  useEffect(() => {
+    isPickerRef.current = isPicker;
+  }, [isPicker]);
+
+  const prevCenterRef = useRef<string>(`${center[0].toFixed(5)},${center[1].toFixed(5)}`);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [gpsActive, setGpsActive] = useState(false);
@@ -113,6 +145,7 @@ export default function CivicMap({
       if (!mapContainerRef.current || mapInstanceRef.current) return;
 
       const L = await import('leaflet');
+      leafletRef.current = L;
 
       if (!isMounted || !mapContainerRef.current) return;
 
@@ -139,17 +172,60 @@ export default function CivicMap({
       markersLayerRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
 
+      // In picker mode, if selectedCoordinates already provided on mount, place marker immediately
+      if (isPickerRef.current && selectedCoordinates) {
+        const pickerIcon = createPickerIcon(L);
+        const marker = L.marker(selectedCoordinates, {
+          icon: pickerIcon,
+          draggable: true,
+          zIndexOffset: 3000,
+        }).addTo(map);
+
+        marker.on('dragend', (dragEvt: any) => {
+          const pos = dragEvt.target.getLatLng();
+          if (onCoordinatesChangeRef.current) {
+            onCoordinatesChangeRef.current([pos.lat, pos.lng]);
+          }
+        });
+
+        pickerMarkerRef.current = marker;
+      }
+
       // Handle map clicks (Takes clicks, points to exact location, reverse-geocodes)
       map.on('click', async (e) => {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
 
-        if (isPicker && onCoordinatesChange) {
-          onCoordinatesChange([lat, lng]);
+        // In Picker mode: immediately pin location at exact click coordinates without resetting camera or reloading tiles
+        if (isPickerRef.current) {
+          const LeafletLib = leafletRef.current || L;
+          if (!pickerMarkerRef.current) {
+            const pickerIcon = createPickerIcon(LeafletLib);
+            const marker = LeafletLib.marker([lat, lng], {
+              icon: pickerIcon,
+              draggable: true,
+              zIndexOffset: 3000,
+            }).addTo(map);
+
+            marker.on('dragend', (dragEvt: any) => {
+              const pos = dragEvt.target.getLatLng();
+              if (onCoordinatesChangeRef.current) {
+                onCoordinatesChangeRef.current([pos.lat, pos.lng]);
+              }
+            });
+
+            pickerMarkerRef.current = marker;
+          } else {
+            pickerMarkerRef.current.setLatLng([lat, lng]);
+          }
+
+          if (onCoordinatesChangeRef.current) {
+            onCoordinatesChangeRef.current([lat, lng]);
+          }
           return;
         }
 
-        // Show immediate clicked marker with loading popup
+        // Show immediate clicked marker with loading popup for explore mode
         if (clickedMarkerRef.current) {
           clickedMarkerRef.current.remove();
         }
@@ -200,6 +276,15 @@ export default function CivicMap({
         map.invalidateSize();
       }, 200);
 
+      const resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      if (mapContainerRef.current) {
+        resizeObserver.observe(mapContainerRef.current);
+      }
+
       if (isMounted) setMapLoaded(true);
     }
 
@@ -229,11 +314,21 @@ export default function CivicMap({
     }
   }, [locateUser]);
 
-  // Center pan when center prop changes
+  // Center pan when center prop changes (smoothly pan without jerking or resetting manual zoom)
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current) return;
-    mapInstanceRef.current.flyTo(center, zoom, { animate: false });
-  }, [mapLoaded, center[0], center[1], zoom]);
+    const centerKey = `${center[0].toFixed(5)},${center[1].toFixed(5)}`;
+    if (prevCenterRef.current === centerKey) return;
+    prevCenterRef.current = centerKey;
+
+    const map = mapInstanceRef.current;
+    const curCenter = map.getCenter();
+    const distance = Math.hypot(curCenter.lat - center[0], curCenter.lng - center[1]);
+    if (distance < 0.0001) return;
+
+    const targetZoom = isPicker ? Math.max(map.getZoom(), zoom || 14) : (zoom || 14);
+    map.flyTo(center, targetZoom, { animate: true, duration: 0.8 });
+  }, [mapLoaded, center[0], center[1], zoom, isPicker]);
 
   // Render User Current Location Pin (Pulsing GPS Marker)
   useEffect(() => {
@@ -340,46 +435,53 @@ export default function CivicMap({
     });
   }, [mapLoaded, tickets, isPicker, router]);
 
-  // Update Location Picker marker (for reporting grievances page)
+  // Update Location Picker marker when selectedCoordinates prop changes externally
   useEffect(() => {
     if (!mapInstanceRef.current || !mapLoaded || !isPicker) return;
 
-    import('leaflet').then((L) => {
-      const map = mapInstanceRef.current;
-      if (!map) return;
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+    if (!map) return;
 
+    const syncMarker = (leafletLib: any) => {
       if (selectedCoordinates) {
         if (!pickerMarkerRef.current) {
-          const pickerIcon = L.divIcon({
-            html: `
-              <div style="background-color: #ea580c; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(234,88,12,0.6);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-              </div>
-            `,
-            className: 'picker-marker-pin',
-            iconSize: [36, 36],
-            iconAnchor: [18, 36],
-          });
-
-          pickerMarkerRef.current = L.marker(selectedCoordinates, {
+          const pickerIcon = createPickerIcon(leafletLib);
+          const marker = leafletLib.marker(selectedCoordinates, {
             icon: pickerIcon,
             draggable: true,
-            zIndexOffset: 2000,
+            zIndexOffset: 3000,
           }).addTo(map);
 
-          pickerMarkerRef.current.on('dragend', (e) => {
-            const latlng = e.target.getLatLng();
-            if (onCoordinatesChange) onCoordinatesChange([latlng.lat, latlng.lng]);
+          marker.on('dragend', (dragEvt: any) => {
+            const pos = dragEvt.target.getLatLng();
+            if (onCoordinatesChangeRef.current) {
+              onCoordinatesChangeRef.current([pos.lat, pos.lng]);
+            }
           });
+
+          pickerMarkerRef.current = marker;
         } else {
-          pickerMarkerRef.current.setLatLng(selectedCoordinates);
+          const cur = pickerMarkerRef.current.getLatLng();
+          if (Math.abs(cur.lat - selectedCoordinates[0]) > 0.00001 || Math.abs(cur.lng - selectedCoordinates[1]) > 0.00001) {
+            pickerMarkerRef.current.setLatLng(selectedCoordinates);
+          }
         }
+      } else if (!selectedCoordinates && pickerMarkerRef.current) {
+        pickerMarkerRef.current.remove();
+        pickerMarkerRef.current = null;
       }
-    });
-  }, [mapLoaded, selectedCoordinates, isPicker, onCoordinatesChange]);
+    };
+
+    if (L) {
+      syncMarker(L);
+    } else {
+      import('leaflet').then((leafletLib) => {
+        leafletRef.current = leafletLib;
+        syncMarker(leafletLib);
+      });
+    }
+  }, [mapLoaded, selectedCoordinates?.[0], selectedCoordinates?.[1], isPicker]);
 
   // If clickedLocation is cleared externally
   useEffect(() => {
@@ -390,8 +492,11 @@ export default function CivicMap({
   }, [clickedLocation]);
 
   return (
-    <div className={`relative w-full h-full overflow-hidden shadow-sm border border-slate-200 bg-slate-100 ${className || 'min-h-[480px] lg:min-h-[540px] rounded-2xl'}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-slate-900 ${className || 'aspect-square rounded-2xl'}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* Subtle Inset Edge Bevel / Shadow for map boundary */}
+      <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-black/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.25)] z-[400]" />
 
       {/* FLOATING "LOCATE ME" / CURRENT GPS POSITION BUTTON */}
       <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2">
@@ -409,11 +514,6 @@ export default function CivicMap({
           <span>{gpsLoading ? 'Locating…' : gpsActive ? 'Current Location Active' : 'Locate Me'}</span>
           {gpsActive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
         </button>
-      </div>
-
-      {/* INFORMATIVE OVERLAY HINT */}
-      <div className="absolute bottom-2 left-2 z-[999] pointer-events-none bg-slate-900/75 backdrop-blur-xs text-white text-[10px] px-2.5 py-1 rounded-md font-medium">
-        💡 Click anywhere on map to pin &amp; identify address
       </div>
     </div>
   );

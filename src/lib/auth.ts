@@ -69,7 +69,14 @@ export function clearSessionCookie(response: Response) {
 }
 
 export function publicUser(user: NonNullable<Awaited<ReturnType<typeof getAuthSession>>>['user']) {
-  const u = user as typeof user & { email?: string | null; dob?: string | null; bio?: string | null; designation?: string | null };
+  const u = user as typeof user & {
+    email?: string | null;
+    dob?: string | null;
+    bio?: string | null;
+    designation?: string | null;
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
+  };
   return {
     id: user.id,
     name: user.name,
@@ -80,6 +87,8 @@ export function publicUser(user: NonNullable<Awaited<ReturnType<typeof getAuthSe
     dob: u.dob ?? null,
     bio: u.bio ?? null,
     designation: u.designation ?? null,
+    avatarUrl: u.avatarUrl ?? null,
+    coverUrl: u.coverUrl ?? null,
     state: user.state,
     city: user.city ? {
       id: user.city.id,

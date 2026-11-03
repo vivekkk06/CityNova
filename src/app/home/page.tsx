@@ -17,6 +17,9 @@ import {
   Layers,
   X,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -48,6 +51,8 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [clickedLocation, setClickedLocation] = useState<ClickedLocationInfo | null>(null);
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  const [showAllDockets, setShowAllDockets] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -111,6 +116,18 @@ export default function HomePage() {
       return matchesCat && matchesStat && matchesQuery;
     });
   }, [tickets, selectedCategory, selectedStatus, searchQuery]);
+
+  // When complaints in a city exceed 7, only show the first 7 initially unless expanded via dropdown
+  const visibleTickets = useMemo(() => {
+    if (showAllDockets) return filteredTickets;
+    return filteredTickets.slice(0, 7);
+  }, [filteredTickets, showAllDockets]);
+
+  // Reset dropdown toggle and expanded docket when active filters change
+  useEffect(() => {
+    setShowAllDockets(false);
+    setExpandedTicketId(null);
+  }, [selectedCategory, selectedStatus, searchQuery]);
 
   const hasActiveFilters = selectedCategory !== 'all' || selectedStatus !== 'all' || searchQuery.trim() !== '';
 
@@ -333,10 +350,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 2-Column Dashboard Layout: Left Controls + Right Map */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* 3-Column Dashboard Layout: Left Controls + Center Map + Right Recent Grievance Dockets */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
             {/* LEFT CONTROL SIDEBAR: Categories, Statuses, Search */}
-            <div className="lg:col-span-4 flex flex-col justify-between bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 sm:p-5 space-y-4">
+            <div className="lg:col-span-3 flex flex-col justify-between bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 p-3.5 sm:p-4 space-y-3.5 min-h-[460px] lg:h-full overflow-y-auto">
               {/* CLICKED LOCATION BANNER (Auto-written when map is clicked) */}
               {clickedLocation && (
                 <div className="rounded-xl border-2 border-orange-400 bg-orange-50/90 p-3.5 shadow-xs space-y-2">
@@ -502,108 +519,206 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* RIGHT MAP: Smaller, Right-Aligned */}
-            <div className="lg:col-span-8 min-h-[440px] h-[480px] sm:h-[500px] lg:h-[520px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs relative bg-slate-100">
-              <CivicMap
-                tickets={filteredTickets}
-                center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}
-                zoom={user?.city ? 14 : 5}
-                className="w-full h-full min-h-full rounded-2xl"
-                onLocationClick={setClickedLocation}
-                clickedLocation={clickedLocation}
-              />
-            </div>
-          </div>
-
-          {/* RECENT GRIEVANCE DOCKETS DISCOVERY GRID */}
-          <div className="pt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900">
-                  Recent Grievance Dockets in {cityName} ({filteredTickets.length})
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Select any complaint docket to view timeline, photos, and resolution proof.
-                </p>
+            {/* CENTER MAP: Perfect Square & Refined Boundary */}
+            <div className="lg:col-span-5 flex items-center justify-center">
+              <div className="w-full aspect-square p-2 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08),0_2px_6px_-2px_rgba(15,23,42,0.04)] flex flex-col">
+                <div className="w-full h-full relative rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900">
+                  <CivicMap
+                    tickets={filteredTickets}
+                    center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}
+                    zoom={user?.city ? 14 : 5}
+                    className="w-full h-full"
+                    onLocationClick={setClickedLocation}
+                    clickedLocation={clickedLocation}
+                  />
+                </div>
               </div>
-
-              <Link
-                href="/posts"
-                className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 group"
-              >
-                <span>View Community Posts</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
             </div>
 
-            {filteredTickets.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                <p className="text-sm font-bold text-slate-700">No reported complaints match your filters.</p>
-                <p className="text-xs text-slate-500">Try adjusting your search keyword, category, or status filter.</p>
-                {hasActiveFilters && (
+            {/* RIGHT COLUMN: Recent Grievance Dockets (One-line short, detail on click) */}
+            <div className="lg:col-span-4 rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white shadow-xs flex flex-col min-h-[460px] lg:h-full overflow-hidden">
+              {/* Header */}
+              <div className="px-4 py-3 sm:py-3.5 border-b border-slate-200/90 flex items-center justify-between gap-2 bg-slate-50/80 shrink-0">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold text-slate-900 truncate flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Recent Grievance Dockets</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
+                    {cityName} &bull; {filteredTickets.length} issue{filteredTickets.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+                {filteredTickets.length > 7 ? (
                   <button
                     type="button"
-                    onClick={clearFilters}
-                    className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                    onClick={() => setShowAllDockets(!showAllDockets)}
+                    className="text-xs font-bold text-blue-700 hover:text-blue-900 shrink-0 flex items-center gap-1 hover:underline cursor-pointer"
                   >
-                    Clear All Filters
+                    <span>{showAllDockets ? 'Show Less' : `View All (${filteredTickets.length})`}</span>
+                    {showAllDockets ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </button>
+                ) : (
+                  <Link
+                    href="/posts"
+                    className="text-xs font-bold text-blue-700 hover:text-blue-900 shrink-0 flex items-center gap-1 hover:underline"
+                  >
+                    <span>View All</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {filteredTickets.slice(0, 6).map((ticket) => {
-                  const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
-                  const isPending = ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL';
 
-                  return (
-                    <Link
-                      key={ticket.id || ticket.caseId}
-                      href={`/ticket/${ticket.caseId}`}
-                      className="group p-4 rounded-xl bg-white border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 truncate">
-                            {ticket.category || 'General Civic'}
-                          </span>
+              {/* Scrollable List of Complaints */}
+              <div className="flex-1 overflow-y-auto max-h-[420px] p-3 space-y-2 divide-y divide-slate-100">
+                {filteredTickets.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 space-y-1.5 my-auto">
+                    <AlertCircle className="w-6 h-6 mx-auto text-slate-400" />
+                    <p className="text-sm font-bold text-slate-800">No complaints found</p>
+                    <p className="text-xs text-slate-500">Try adjusting your category or status filters.</p>
+                  </div>
+                ) : (
+                  <>
+                    {visibleTickets.map((ticket) => {
+                      const isExpanded = expandedTicketId === ticket.caseId;
+                      const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
+                      const isPending = ticket.status === 'PROVISIONALLY_RESOLVED' || ticket.status === 'PENDING_APPROVAL';
+                      const isInProgress = ticket.status === 'IN_PROGRESS' || ticket.status === 'ASSIGNED';
 
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              isResolved
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : isPending
-                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      let statusDot = 'bg-red-500';
+                      let statusLabel = 'Open';
+                      let statusBadge = 'bg-red-50 text-red-700 border-red-200';
+
+                      if (isResolved) {
+                        statusDot = 'bg-emerald-500';
+                        statusLabel = 'Resolved';
+                        statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      } else if (isPending) {
+                        statusDot = 'bg-purple-600';
+                        statusLabel = 'Pending Sign-off';
+                        statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+                      } else if (isInProgress) {
+                        statusDot = 'bg-amber-500';
+                        statusLabel = 'In Progress';
+                        statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                      }
+
+                      return (
+                        <div
+                          key={ticket.id || ticket.caseId}
+                          className="pt-2 first:pt-0"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setExpandedTicketId(isExpanded ? null : ticket.caseId)}
+                            className={`w-full text-left px-3 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-between gap-2.5 cursor-pointer border ${
+                              isExpanded
+                                ? 'bg-blue-50/80 border-blue-200 shadow-2xs'
+                                : 'hover:bg-slate-50 border-slate-100/90 bg-white'
                             }`}
+                            title={ticket.title}
                           >
-                            {isResolved ? 'Resolved' : isPending ? 'Pending Sign-off' : 'In Progress'}
-                          </span>
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusDot}`} />
+                              <span className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                                {ticket.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs font-mono font-medium text-slate-500">
+                                #{ticket.caseId.slice(-6)}
+                              </span>
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-blue-600 shrink-0" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Expanded Details - Only shown after click on specific complaint */}
+                          {isExpanded && (
+                            <div className="mt-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs animate-fadeIn">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-white text-slate-700 border border-slate-200">
+                                  {ticket.category || 'General Civic'}
+                                </span>
+                                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusBadge}`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+
+                              <h4 className="text-sm font-extrabold text-slate-900 leading-snug">
+                                {ticket.title}
+                              </h4>
+
+                              {ticket.addressDescription && (
+                                <p className="text-xs text-slate-700 flex items-start gap-1.5 leading-normal font-medium">
+                                  <MapPin className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+                                  <span>{ticket.addressDescription}</span>
+                                </p>
+                              )}
+
+                              {ticket.initialPhotoUrl && (
+                                <div className="w-full h-28 rounded-xl overflow-hidden border border-slate-200 bg-white shadow-2xs">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={ticket.initialPhotoUrl}
+                                    alt={ticket.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between">
+                                <span className="font-mono text-xs font-medium text-slate-500">
+                                  #{ticket.caseId}
+                                </span>
+                                <Link
+                                  href={`/ticket/${ticket.caseId}`}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-2xs"
+                                >
+                                  <span>View Docket</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </Link>
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      );
+                    })}
 
-                        <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
-                          {ticket.title}
-                        </h4>
-
-                        {ticket.addressDescription && (
-                          <p className="text-[11px] text-slate-500 flex items-center gap-1 line-clamp-1">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span>{ticket.addressDescription}</span>
-                          </p>
-                        )}
+                    {/* Dropdown Chevron Button to View All when complaints exceed 7 */}
+                    {filteredTickets.length > 7 && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAllDockets(!showAllDockets)}
+                          className="w-full py-2 px-3 rounded-xl border border-slate-200/90 hover:border-blue-300 bg-slate-50/80 hover:bg-blue-50/60 text-xs font-bold text-slate-700 hover:text-blue-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs group"
+                        >
+                          <span>
+                            {showAllDockets
+                              ? 'Show Less (First 7)'
+                              : `View All (${filteredTickets.length} Complaints)`}
+                          </span>
+                          {showAllDockets ? (
+                            <ChevronUp className="w-4 h-4 text-blue-600 transition-transform group-hover:-translate-y-0.5" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-500 transition-transform group-hover:translate-y-0.5" />
+                          )}
+                        </button>
                       </div>
-
-                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                        <span className="font-mono text-slate-400 text-[10px]">#{ticket.caseId}</span>
-                        <span className="font-bold text-blue-700 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">
-                          View Docket &rarr;
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
+                    )}
+                  </>
+                )}
               </div>
-            )}
+
+              {/* Column Footer */}
+              <div className="px-3 py-2.5 border-t border-slate-100 bg-slate-50/50 text-center shrink-0">
+                <span className="text-xs text-slate-500 font-medium">
+                  Select any complaint above to view its details &amp; docket
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </main>

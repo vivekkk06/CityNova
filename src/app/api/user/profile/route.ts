@@ -69,6 +69,14 @@ export async function PATCH(req: NextRequest) {
       updateData.designation = designation || null;
     }
 
+    if (typeof body.avatarUrl === 'string' || body.avatarUrl === null) {
+      updateData.avatarUrl = body.avatarUrl ? body.avatarUrl.trim() : null;
+    }
+
+    if (typeof body.coverUrl === 'string' || body.coverUrl === null) {
+      updateData.coverUrl = body.coverUrl ? body.coverUrl.trim() : null;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,

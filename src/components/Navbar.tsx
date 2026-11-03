@@ -34,14 +34,20 @@ export default function Navbar() {
               <Image src="/citynova-icon.png" alt="CityNova" width={16} height={16} unoptimized className="w-4 h-4 rounded-full object-cover inline-block" />
               <span>CityNova &bull; {isAuthority ? 'Authority Employee Portal' : 'Citizen Civic Portal'}</span>
             </div>
-            <span className="hidden md:inline text-slate-600">|</span>
+            <span className="hidden md:inline text-slate-600">&bull;</span>
             <span className="hidden md:inline text-slate-300 text-[11px]">
               {user?.city?.name || 'Your city'} &bull; {user?.state || user?.city?.state || ''}
             </span>
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <Link href="/profile" className="hover:text-emerald-300 transition-colors flex items-center gap-1 group" title="View your profile">
+            <Link href="/profile" className="hover:text-emerald-300 transition-colors flex items-center gap-1.5 group" title="View your profile">
+              {user?.avatarUrl ? (
+                <div className="w-4 h-4 rounded-full overflow-hidden border border-emerald-400/80 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={user.avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                </div>
+              ) : null}
               <span>Signed in as <span className="font-bold text-white group-hover:underline underline-offset-2">{user?.username || 'citizen'}</span></span>
             </Link>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-amber-300 border border-slate-700">
@@ -118,7 +124,14 @@ export default function Navbar() {
                   : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/60'
               }`}
             >
-              <User className="w-4 h-4 text-emerald-400" />
+              {user?.avatarUrl ? (
+                <div className="w-4 h-4 rounded-full overflow-hidden border border-emerald-400/80 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={user.avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <User className="w-4 h-4 text-emerald-400" />
+              )}
               <span>Profile</span>
             </Link>
           </nav>
@@ -192,7 +205,14 @@ export default function Navbar() {
               className="flex items-center justify-between p-3 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-xs border border-slate-700/60"
             >
               <span className="flex items-center gap-2.5">
-                <User className="w-4 h-4 text-emerald-400" />
+                {user?.avatarUrl ? (
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-emerald-400/80 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={user.avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <User className="w-4 h-4 text-emerald-400" />
+                )}
                 Profile
               </span>
             </Link>

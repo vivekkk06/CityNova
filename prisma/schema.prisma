@@ -25,6 +25,8 @@ model User {
   designation   String?
   dob           String?
   bio           String?
+  avatarUrl     String?
+  coverUrl      String?
   role          String           @default("CITIZEN")
   sessions      Session[]
   tickets       Ticket[]

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         status: true,
         addressDescription: true,
         createdAt: true,
-        reporter: { select: { username: true } },
+        reporter: { select: { username: true, name: true, avatarUrl: true } },
         reactions: {
           where: { userId: session.user.id },
           select: { id: true },
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             id: true,
             body: true,
             createdAt: true,
-            user: { select: { username: true } },
+            user: { select: { username: true, name: true, avatarUrl: true } },
           },
         },
       },
@@ -55,6 +55,8 @@ export async function GET(request: NextRequest) {
       addressDescription: ticket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, ''),
       createdAt: ticket.createdAt,
       authorUsername: ticket.reporter?.username || 'citizen',
+      authorName: ticket.reporter?.name || 'Citizen',
+      authorAvatarUrl: ticket.reporter?.avatarUrl || null,
       plusOneCount: ticket._count.reactions,
       reactedByMe: ticket.reactions.length > 0,
       comments: ticket.comments.map((comment) => ({
@@ -62,6 +64,8 @@ export async function GET(request: NextRequest) {
         body: comment.body,
         createdAt: comment.createdAt,
         authorUsername: comment.user.username || 'citizen',
+        authorName: comment.user.name || 'Citizen',
+        authorAvatarUrl: comment.user.avatarUrl || null,
       })),
     }));
 

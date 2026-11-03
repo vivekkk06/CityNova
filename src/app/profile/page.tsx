@@ -96,17 +96,26 @@ export default function ProfilePage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    // Proactively purge old shared fallbacks that caused cross-citizen photo leakage
     try {
-      const stored = localStorage.getItem(`citynova_avatar_${user.id}`);
-      if (stored) {
-        setAvatarUrl(stored);
-      } else {
-        const fallback = localStorage.getItem('citynova_avatar');
-        if (fallback) setAvatarUrl(fallback);
-      }
+      localStorage.removeItem('citynova_avatar');
+      localStorage.removeItem('citynova_cover');
     } catch {}
-  }, [user?.id]);
+
+    if (!user?.id) {
+      setAvatarUrl(null);
+      setCoverUrl(null);
+      return;
+    }
+
+    // Avatar is particular to this specific citizen account
+    const storedAvatar = localStorage.getItem(`citynova_avatar_${user.id}`);
+    setAvatarUrl(user.avatarUrl || storedAvatar || null);
+
+    // Cover photo is particular to this specific citizen account
+    const storedCover = localStorage.getItem(`citynova_cover_${user.id}`);
+    setCoverUrl(user.coverUrl || storedCover || null);
+  }, [user?.id, user?.avatarUrl, user?.coverUrl]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,7 +129,7 @@ export default function ProfilePage() {
     setPhotoError('');
     setUploadingPhoto(true);
 
-    // Instant local preview
+    // Instant local preview for this specific user
     const reader = new FileReader();
     reader.onload = (event) => {
       const preview = event.target?.result as string;
@@ -128,7 +137,6 @@ export default function ProfilePage() {
         setAvatarUrl(preview);
         try {
           localStorage.setItem(`citynova_avatar_${user.id}`, preview);
-          localStorage.setItem('citynova_avatar', preview);
         } catch {}
       }
     };
@@ -146,8 +154,15 @@ export default function ProfilePage() {
         setAvatarUrl(data.url);
         try {
           localStorage.setItem(`citynova_avatar_${user.id}`, data.url);
-          localStorage.setItem('citynova_avatar', data.url);
         } catch {}
+
+        // Persist permanently to this citizen's database profile record
+        await fetch('/api/user/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarUrl: data.url }),
+        });
+        await refresh();
       }
     } catch (err) {
       console.error('Failed to upload avatar to server:', err);
@@ -157,13 +172,20 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     setAvatarUrl(null);
     if (user?.id) {
       try {
         localStorage.removeItem(`citynova_avatar_${user.id}`);
-        localStorage.removeItem('citynova_avatar');
-      } catch {}
+        await fetch('/api/user/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarUrl: null }),
+        });
+        await refresh();
+      } catch (err) {
+        console.error('Failed to remove avatar:', err);
+      }
     }
   };
 
@@ -171,19 +193,6 @@ export default function ProfilePage() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const coverInputRef = React.useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    try {
-      const storedCover = localStorage.getItem(`citynova_cover_${user.id}`);
-      if (storedCover) {
-        setCoverUrl(storedCover);
-      } else {
-        const fallback = localStorage.getItem('citynova_cover');
-        if (fallback) setCoverUrl(fallback);
-      }
-    } catch {}
-  }, [user?.id]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -203,7 +212,6 @@ export default function ProfilePage() {
         setCoverUrl(preview);
         try {
           localStorage.setItem(`citynova_cover_${user.id}`, preview);
-          localStorage.setItem('citynova_cover', preview);
         } catch {}
       }
     };
@@ -221,8 +229,15 @@ export default function ProfilePage() {
         setCoverUrl(data.url);
         try {
           localStorage.setItem(`citynova_cover_${user.id}`, data.url);
-          localStorage.setItem('citynova_cover', data.url);
         } catch {}
+
+        // Persist permanently to this citizen's database profile record
+        await fetch('/api/user/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coverUrl: data.url }),
+        });
+        await refresh();
       }
     } catch (err) {
       console.error('Failed to upload cover to server:', err);
@@ -232,13 +247,20 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRemoveCover = () => {
+  const handleRemoveCover = async () => {
     setCoverUrl(null);
     if (user?.id) {
       try {
         localStorage.removeItem(`citynova_cover_${user.id}`);
-        localStorage.removeItem('citynova_cover');
-      } catch {}
+        await fetch('/api/user/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coverUrl: null }),
+        });
+        await refresh();
+      } catch (err) {
+        console.error('Failed to remove cover:', err);
+      }
     }
   };
 
@@ -621,7 +643,9 @@ export default function ProfilePage() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">My Complaints</p>
+                  <p className="text-xs font-semibold text-slate-500">
+                    {isAuthority ? 'Settlements' : 'My Complaints'}
+                  </p>
                   <p className="text-lg font-black text-slate-900">{tickets.length}</p>
                 </div>
               </div>
@@ -674,7 +698,7 @@ export default function ProfilePage() {
             }`}
           >
             <FileText className="w-4 h-4 text-sky-400" />
-            <span>My Complaints</span>
+            <span>{isAuthority ? 'Settlements' : 'My Complaints'}</span>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
                 activeTab === 'complaints' ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-700'
@@ -713,7 +737,9 @@ export default function ProfilePage() {
                 <div>
                   <h2 className="text-lg font-black text-slate-900">Personal Details</h2>
                   <p className="text-xs text-slate-500">
-                    Your authenticated civic citizen credentials and official details.
+                    {isAuthority
+                      ? 'Your authenticated official authority credentials and jurisdictional details.'
+                      : 'Your authenticated civic citizen credentials and official details.'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -734,7 +760,7 @@ export default function ProfilePage() {
                   </button>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hidden sm:flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Civic Account Active
+                    {isAuthority ? 'Official Account Active' : 'Civic Account Active'}
                   </span>
                 </div>
               </div>
@@ -1037,9 +1063,13 @@ export default function ProfilePage() {
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-6">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">Complaints Filed by You</h2>
+                  <h2 className="text-lg font-black text-slate-900">
+                    {isAuthority ? 'Settlements & Grievances Overseen' : 'Complaints Filed by You'}
+                  </h2>
                   <p className="text-xs text-slate-500">
-                    Track the live status, department assignment, and public dockets of your grievances.
+                    {isAuthority
+                      ? 'Track settlement status, departmental actions, and civic resolution milestones in your jurisdiction.'
+                      : 'Track the live status, department assignment, and public dockets of your grievances.'}
                   </p>
                 </div>
 
@@ -1083,12 +1113,18 @@ export default function ProfilePage() {
                 <div className="py-12 text-center bg-slate-50 rounded-2xl border border-slate-100 p-8">
                   <FileText className="w-10 h-10 text-slate-400 mx-auto mb-3" />
                   <h3 className="text-base font-extrabold text-slate-800">
-                    {tickets.length === 0 ? 'No complaints filed yet' : 'No complaints match this filter'}
+                    {tickets.length === 0
+                      ? (isAuthority ? 'No settlements recorded yet' : 'No complaints filed yet')
+                      : (isAuthority ? 'No settlements match this filter' : 'No complaints match this filter')}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                     {tickets.length === 0
-                      ? 'When you report civic issues like potholes, drainage leaks, or streetlights in your city, they will appear here with live tracking.'
-                      : 'Try switching filters to view your other active or resolved civic issues.'}
+                      ? (isAuthority
+                          ? 'When grievance complaints in your jurisdiction are investigated, processed, or resolved, they will appear here.'
+                          : 'When you report civic issues like potholes, drainage leaks, or streetlights in your city, they will appear here with live tracking.')
+                      : (isAuthority
+                          ? 'Try switching filters to view other settlements and grievance cases.'
+                          : 'Try switching filters to view your other active or resolved civic issues.')}
                   </p>
                   {tickets.length === 0 && !isAuthority && (
                     <Link
