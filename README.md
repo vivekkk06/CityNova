@@ -99,7 +99,7 @@ problems and ward-level indicators more visible.
     photographs, voice notes, and geolocation.
 -   **Map-based issue visibility:** View reports across different areas
     of a city.
--   **ML-assisted categorization:** Help classify reports so they are
+-   **Report categorization:** Help classify reports so they are
     easier to organize and access.
 -   **Community interaction:** Allow residents to comment, confirm
     reports, flag possible duplicates, and contribute additional
@@ -107,13 +107,10 @@ problems and ward-level indicators more visible.
 -   **Promise-to-Proof Ledger:** Keep a time-stamped record of official
     commitments, deadlines, progress updates, and evidence of completed
     work.
--   **Ward-level dashboard:** Surface recurring problems, pending
-    complaints, resolution timelines, and ward-level performance
-    indicators.
 -   **Know Your Rights:** Provide citizens with information about
     relevant rights, official channels, and ways to seek assistance.
 -   **AI public-enquiry agent:** Help users find general information and
-    navigate the platform.
+    navigate the platform. 
 -   **Privacy-conscious reporting:** Support anonymous reporting to help
     protect a reporter's public profile.
 -   **Civic contribution score:** Explore a contribution-based score
@@ -127,13 +124,15 @@ The project presentation describes the following technical components:
 
 1.  A simple website with sections for citizens, authorities, city
     information, and an AI enquiry agent.
-2.  Reporting through text, images, voice notes, and geolocation.
-3.  Classification of civic reports into progress-wise categories.
-4.  Community feedback and evidence to support report verification.
-5.  A time-stamped ledger for commitments, deadlines, progress, and
+2.  The Enquiry tab is powered by ML. It uses Google DeepMind's Gemini model. Multilingual NLP is used for voice detection.
+3.  Reporting through text, images, voice notes, and geolocation. When citizens report via voice notes, Gemini Multimodal Audio AI transcribes the spoken speech into text.
+4.  Privacy protection is already enforced by strict system instructions.
+5.  Classification of civic reports into progress-wise categories.
+6.  Community feedback and evidence to support report verification.
+7.  A time-stamped ledger for commitments, deadlines, progress, and
     completion evidence.
-6.  Dashboards for recurring issues, pending reports, resolution
-    timelines, and ward-level indicators.
+8.  Dashboards for recurring issues, pending reports, resolution
+    timelines.
 
 **Technology stack:** The project presentation refers to web frameworks,
 databases, and AI/ML tools, but does not specify their exact names.
