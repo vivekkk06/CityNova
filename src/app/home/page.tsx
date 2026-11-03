@@ -520,9 +520,9 @@ export default function HomePage() {
             </div>
 
             {/* CENTER MAP: Perfect Square & Refined Boundary */}
-            <div className="lg:col-span-5 flex items-center justify-center">
-              <div className="w-full aspect-square p-2 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08),0_2px_6px_-2px_rgba(15,23,42,0.04)] flex flex-col">
-                <div className="w-full h-full relative rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900">
+            <div className="lg:col-span-5 flex items-center justify-center relative isolate z-0">
+              <div className="w-full aspect-square p-2 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.08),0_2px_6px_-2px_rgba(15,23,42,0.04)] flex flex-col relative isolate z-0">
+                <div className="w-full h-full relative rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 isolate z-0">
                   <CivicMap
                     tickets={filteredTickets}
                     center={user?.city ? [user.city.centerLat, user.city.centerLng] : [20.5937, 78.9629]}

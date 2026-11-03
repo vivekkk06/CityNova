@@ -22,6 +22,7 @@ import CommitmentCard from '@/components/CommitmentCard';
 import ProofComparison from '@/components/ProofComparison';
 import CivicMemorySection from '@/components/CivicMemorySection';
 import TicketHistory from '@/components/TicketHistory';
+import CivicScoreBadge from '@/components/CivicScoreBadge';
 import { useAuth } from '@/lib/auth-context';
 
 function TicketDetailContent() {
@@ -56,18 +57,19 @@ function TicketDetailContent() {
   }, [id]);
 
   // Citizen Verify Action
-  const handleVerifyResolution = async () => {
+  const handleVerifyResolution = async (comment?: string) => {
     if (!ticket) return;
     try {
       const res = await fetch(`/api/tickets/${ticket.id}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'VERIFY' }),
+        body: JSON.stringify({ action: 'VERIFY', comment }),
       });
       const data = await res.json();
       if (data.success) {
-        alert('Complaint status updated.');
         loadTicketData();
+      } else {
+        alert(data.error || 'Failed to update sign-off.');
       }
     } catch (err) {
       console.error('Failed to verify:', err);
@@ -88,8 +90,9 @@ function TicketDetailContent() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Complaint returned to In Progress. The after-repair photo proof has been removed.');
         loadTicketData();
+      } else {
+        alert(data.error || 'Failed to submit dispute.');
       }
     } catch (err) {
       console.error('Failed to dispute:', err);
@@ -279,8 +282,15 @@ function TicketDetailContent() {
                 <strong>Specific Location:</strong> {ticket.addressDescription}
               </span>
               <span>&bull;</span>
-              <span>
-                <strong>Reported By:</strong> {ticket.citizenName} ({ticket.citizenPhone})
+              <span className="inline-flex items-center gap-1.5 flex-wrap">
+                <strong>Reported By:</strong> {ticket.citizenName}
+                {ticket.reporterCivicScore !== undefined && (
+                  <CivicScoreBadge
+                    score={ticket.reporterCivicScore}
+                    isBanned={ticket.reporterIsBanned}
+                    size="sm"
+                  />
+                )}
               </span>
             </div>
 

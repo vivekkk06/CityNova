@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { saveUploadedFile } from '@/lib/storage';
+import { syncUserCivicScore } from '@/lib/civic-score';
 
 const ALLOWED_STATUSES = new Set(['IN_PROGRESS', 'PROVISIONALLY_RESOLVED']);
 const MAX_PHOTO_SIZE = 8 * 1024 * 1024;
@@ -71,6 +72,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         },
       }),
     ]);
+
+    if (ticket.reporterId) {
+      await syncUserCivicScore(ticket.reporterId);
+    }
+
     return NextResponse.json({ success: true, ticket: updated });
   } catch (error) {
     console.error('Authority complaint status update failed:', error);

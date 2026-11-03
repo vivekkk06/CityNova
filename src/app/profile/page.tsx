@@ -28,9 +28,14 @@ import {
   Mail,
   Edit3,
   Landmark,
+  ShieldAlert,
+  Award,
+  TrendingUp,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import CivicScoreBadge from '@/components/CivicScoreBadge';
+import { getCivicScoreTier } from '@/lib/civic-score';
 import { useAuth } from '@/lib/auth-context';
 
 interface UserTicket {
@@ -344,20 +349,25 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // Fetch Saved Posts
+  // Fetch Saved Posts (strictly isolated per user account)
   const loadSavedPosts = useCallback(async () => {
+    if (!user?.id) {
+      setSavedPosts([]);
+      setSavedLoading(false);
+      return;
+    }
+
     setSavedLoading(true);
     setSavedError('');
     try {
-      const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+      // Purge legacy shared key that contaminated cross-user profiles
+      localStorage.removeItem('citynova_saved_posts');
+
+      const key = `citynova_saved_posts_${user.id}`;
       let storedIds: string[] = [];
       try {
         const raw = localStorage.getItem(key);
         if (raw) storedIds = JSON.parse(raw);
-        else {
-          const fallback = localStorage.getItem('citynova_saved_posts');
-          if (fallback) storedIds = JSON.parse(fallback);
-        }
       } catch {}
 
       if (storedIds.length === 0) {
@@ -392,15 +402,15 @@ export default function ProfilePage() {
 
   // Remove post from saved
   const removeSavedPost = (postId: string) => {
+    if (!user?.id) return;
     setSavedPosts((prev) => prev.filter((p) => p.id !== postId));
     try {
-      const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+      const key = `citynova_saved_posts_${user.id}`;
       const raw = localStorage.getItem(key);
       if (raw) {
         const ids: string[] = JSON.parse(raw);
         const filtered = ids.filter((id) => id !== postId);
         localStorage.setItem(key, JSON.stringify(filtered));
-        localStorage.setItem('citynova_saved_posts', JSON.stringify(filtered));
       }
     } catch {}
   };
@@ -491,6 +501,28 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {user.isBanned && (
+          <div className="rounded-3xl border-2 border-red-300 bg-red-50 p-6 sm:p-7 shadow-sm text-red-900 space-y-2">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert className="w-6 h-6 text-red-600 shrink-0" />
+              <h2 className="text-lg font-black text-red-900">
+                Civic Account Restricted by Municipal Authority
+              </h2>
+            </div>
+            <p className="text-sm text-red-800 leading-relaxed font-medium">
+              Your reporting and posting privileges have been restricted due to community-flagged fake or duplicate complaints. Your Civic Score is currently set to <strong>0</strong>.
+              {user.banReason && (
+                <span className="block mt-1 font-bold text-red-950">
+                  Official Restriction Reason: &ldquo;{user.banReason}&rdquo;
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-red-700 pt-1">
+              While restricted, you cannot submit new civic grievance reports or comment on community posts. If you believe this action was made in error or following false flags, please appeal to the municipal grievance cell.
+            </p>
+          </div>
+        )}
+
         {/* Profile Header Banner */}
         <section className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
           <div className="h-44 sm:h-56 bg-linear-to-r from-slate-950 via-slate-900 to-teal-950 relative overflow-hidden group">
@@ -613,6 +645,13 @@ export default function ProfilePage() {
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   {isAuthority ? 'Authority Official' : 'Verified Citizen'}
                 </span>
+                {!isAuthority && (
+                  <CivicScoreBadge
+                    score={user.civicScore ?? 50}
+                    isBanned={user.isBanned}
+                    size="md"
+                  />
+                )}
                 {isAuthority && profileForm.designation && (
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
                     <Landmark className="w-3.5 h-3.5 text-amber-700" />
@@ -637,7 +676,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
+            <div className={`grid gap-3 pt-4 border-t border-slate-100 ${isAuthority ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
               <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5" />
@@ -650,6 +689,20 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {!isAuthority && (
+                <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${user.isBanned ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">Civic Score</p>
+                    <p className={`text-lg font-black ${user.isBanned ? 'text-red-700' : 'text-slate-900'}`}>
+                      {user.isBanned ? '0' : (user.civicScore ?? 50)} <span className="text-xs font-bold text-slate-500">pts</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
                   <Bookmark className="w-5 h-5" />
@@ -660,7 +713,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="col-span-2 sm:col-span-1 bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
+              <div className={`${isAuthority ? 'col-span-2 sm:col-span-1' : ''} bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3`}>
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                   <Building2 className="w-5 h-5" />
                 </div>
@@ -732,6 +785,94 @@ export default function ProfilePage() {
         {/* Tab 1: Personal Info */}
         {activeTab === 'info' && (
           <div className="space-y-6">
+            {!isAuthority && (
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <Award className="w-6 h-6 text-emerald-600" />
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Civic Score & Trust Credibility</h2>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Your score reflects verified civic contributions and municipal repair accountability.
+                    </p>
+                  </div>
+                  <CivicScoreBadge score={user.civicScore ?? 50} isBanned={user.isBanned} size="lg" showDetails />
+                </div>
+
+                {/* Score Progress Meter */}
+                {(() => {
+                  const score = user.isBanned ? 0 : (user.civicScore ?? 50);
+                  const tier = getCivicScoreTier(score, user.isBanned);
+                  const progressPct = user.isBanned ? 0 : Math.min(100, Math.round((score / 500) * 100));
+
+                  return (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6 space-y-3.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-base font-extrabold text-slate-900">
+                        <span>Current Credibility Tier: <strong className={tier.badgeText}>{tier.label}</strong> <span className="font-semibold text-slate-500">({tier.trustLevel})</span></span>
+                        <span className="font-black text-slate-900">{score} / 500 Target Points</span>
+                      </div>
+                      <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            user.isBanned ? 'bg-red-500' : 'bg-emerald-600'
+                          }`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-slate-700 leading-relaxed font-medium">{tier.description}</p>
+                    </div>
+                  );
+                })()}
+
+                {/* Point Earning Breakdown Rules */}
+                <div className="space-y-4">
+                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    How to Improve Your Civic Score
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-base font-extrabold text-slate-900">True Civic Reporting</span>
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs sm:text-sm font-black text-blue-800 shrink-0">+10 pts</span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                        File genuine civic complaints with accurate geo-location and clear photo or audio evidence.
+                      </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-base font-extrabold text-slate-900">Work Progress Initiated</span>
+                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs sm:text-sm font-black text-indigo-800 shrink-0">+15 pts</span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                        Earn points when municipal engineers assign crew and begin active on-site repairs.
+                      </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-base font-extrabold text-slate-900">Issue Resolved & Verified</span>
+                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs sm:text-sm font-black text-emerald-800 shrink-0">+35 pts</span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                        Substantially boost your standing when repairs are signed off with after-repair photographic proof.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-red-200/80 bg-red-50/70 p-4 text-xs sm:text-sm text-red-900 flex items-start gap-2.5 leading-relaxed">
+                    <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Fake / Duplicate Complaint Safeguard:</strong> If residents comment that an issue is fake or duplicate, municipal authorities can ban the reporter. Banned accounts drop to <strong>0 score</strong> and are restricted from filing new reports or comments.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
               <div className="border-b border-slate-100 pb-4 mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -1189,6 +1330,15 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                          {ticket.status === 'PROVISIONALLY_RESOLVED' && (
+                            <Link
+                              href={`/ticket/${ticket.caseId}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs animate-pulse"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Inspect &amp; Sign Off</span>
+                            </Link>
+                          )}
                           <Link
                             href={`/ticket/${ticket.caseId}`}
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-transform hover:scale-102"

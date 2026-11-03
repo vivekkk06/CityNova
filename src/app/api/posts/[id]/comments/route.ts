@@ -11,8 +11,11 @@ export async function POST(
     if (!session?.user.cityId || !session.user.city) {
       return NextResponse.json({ error: 'Please sign in to comment on a post.' }, { status: 401 });
     }
-    if (session.user.role !== 'CITIZEN') {
-      return NextResponse.json({ error: 'Authority Employee accounts can view comments but cannot post them.' }, { status: 403 });
+    if (session.user.isBanned) {
+      return NextResponse.json({
+        error: session.user.banReason || 'Your account has been restricted by Municipal Authority from posting comments.',
+        isBanned: true,
+      }, { status: 403 });
     }
 
     let body: unknown;
@@ -37,12 +40,28 @@ export async function POST(
 
     const comment = await prisma.ticketComment.create({
       data: { ticketId: ticket.id, userId: session.user.id, body: commentText },
-      select: { id: true, body: true, createdAt: true },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        user: { select: { username: true, name: true, avatarUrl: true, role: true, designation: true, civicScore: true, isBanned: true } },
+      },
     });
 
     return NextResponse.json({
       success: true,
-      comment: { ...comment, authorUsername: session.user.username || 'citizen' },
+      comment: {
+        id: comment.id,
+        body: comment.body,
+        createdAt: comment.createdAt,
+        authorUsername: comment.user.username || 'citizen',
+        authorName: comment.user.name || 'Citizen',
+        authorAvatarUrl: comment.user.avatarUrl || null,
+        authorRole: comment.user.role,
+        authorDesignation: comment.user.designation || null,
+        authorCivicScore: comment.user.civicScore ?? 50,
+        authorIsBanned: Boolean(comment.user.isBanned),
+      },
     });
   } catch (error) {
     console.error('Error creating post comment:', error);

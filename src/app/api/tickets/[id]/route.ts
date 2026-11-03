@@ -24,6 +24,16 @@ export async function GET(
       },
       include: {
         city: true,
+        reporter: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            civicScore: true,
+            isBanned: true,
+            banReason: true,
+          },
+        },
       },
     });
 
@@ -36,12 +46,29 @@ export async function GET(
     // Filter out current ticket if it matches
     const pastNearbyFixes = civicMemory.filter((m) => m.id !== ticket.id);
 
-    const processedTicket = sanitizeTicketForPublic(ticket);
+    const processedTicket = {
+      ...sanitizeTicketForPublic(ticket),
+      reporterCivicScore: ticket.reporter?.civicScore ?? 50,
+      reporterIsBanned: Boolean(ticket.reporter?.isBanned),
+      reporterDetails: session.user.role === 'AUTHORITY' && ticket.reporter ? {
+        id: ticket.reporter.id,
+        name: ticket.reporter.name,
+        username: ticket.reporter.username,
+        civicScore: ticket.reporter.civicScore ?? 50,
+        isBanned: Boolean(ticket.reporter.isBanned),
+        banReason: ticket.reporter.banReason,
+      } : null,
+    };
+
+    const isCitizen = session.user.role === 'CITIZEN';
+    const isReporter = ticket.reporterId === session.user.id;
+    const isAuthority = session.user.role === 'AUTHORITY';
+    const canUpdateResolution = isCitizen || isReporter || isAuthority;
 
     return NextResponse.json({
       success: true,
       ticket: processedTicket,
-      canUpdateResolution: ticket.reporterId === session.user.id,
+      canUpdateResolution,
       civicMemory: pastNearbyFixes.map((m) => sanitizeTicketForPublic(m)),
     });
   } catch (error) {

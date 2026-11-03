@@ -3,11 +3,12 @@
 import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Upload } from 'lucide-react';
+import { ArrowLeft, MapPin, Upload, ShieldAlert, UserX, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CommitmentCard from '@/components/CommitmentCard';
 import TicketHistory from '@/components/TicketHistory';
+import CivicScoreBadge from '@/components/CivicScoreBadge';
 import { useAuth } from '@/lib/auth-context';
 
 const STATUS_OPTIONS = [
@@ -33,6 +34,12 @@ function AuthorityComplaintContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Citizen Ban State
+  const [banReason, setBanReason] = useState('');
+  const [banModalOpen, setBanModalOpen] = useState(false);
+  const [banBusy, setBanBusy] = useState(false);
+  const [banFeedback, setBanFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -90,6 +97,47 @@ function AuthorityComplaintContent() {
     }
   };
 
+  const handleBanCitizen = async (action: 'BAN' | 'UNBAN') => {
+    const reporterId = ticket?.reporterDetails?.id;
+    if (!reporterId) {
+      setBanFeedback('Reporter account information is not linked to an active user.');
+      return;
+    }
+    setBanBusy(true);
+    setBanFeedback(null);
+    try {
+      const response = await fetch('/api/authority/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          citizenId: reporterId,
+          action,
+          reason: action === 'BAN' ? banReason : undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update citizen ban status.');
+      setBanFeedback(data.message);
+      setTicket((current: any) => ({
+        ...current,
+        reporterCivicScore: data.user.civicScore,
+        reporterIsBanned: action === 'BAN',
+        reporterDetails: {
+          ...current?.reporterDetails,
+          isBanned: action === 'BAN',
+          civicScore: data.user.civicScore,
+          banReason: action === 'BAN' ? banReason : null,
+        },
+      }));
+      setBanModalOpen(false);
+      setBanReason('');
+    } catch (banErr) {
+      setBanFeedback(banErr instanceof Error ? banErr.message : 'Failed to update citizen ban status.');
+    } finally {
+      setBanBusy(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <Navbar />
@@ -123,6 +171,112 @@ function AuthorityComplaintContent() {
               <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-red-600" />{ticket.addressDescription}</span>
               <span>Reported by: {ticket.citizenName}</span>
               <span>Reported: {new Date(ticket.createdAt).toLocaleString()}</span>
+            </div>
+
+            {/* Citizen Reporter Credibility & Ban Actions */}
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Citizen Reporter:</span>
+                    <span className="text-sm font-black text-slate-900">{ticket.citizenName}</span>
+                    {ticket.reporterDetails?.username && (
+                      <span className="text-xs text-slate-500 font-mono">@{ticket.reporterDetails.username}</span>
+                    )}
+                    <CivicScoreBadge
+                      score={ticket.reporterCivicScore ?? 50}
+                      isBanned={ticket.reporterIsBanned}
+                      showDetails
+                      size="md"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Civic score reflects verified reports, active progress, and dispute vigilance.
+                    {ticket.reporterIsBanned && (
+                      <span className="text-red-700 font-bold block mt-1">
+                        Restriction in effect: {ticket.reporterDetails?.banReason || 'Banned for fake or duplicate issues.'}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {ticket.reporterDetails?.id && (
+                  <div>
+                    {ticket.reporterIsBanned ? (
+                      <button
+                        type="button"
+                        disabled={banBusy}
+                        onClick={() => void handleBanCitizen('UNBAN')}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>{banBusy ? 'Restoring...' : 'Restore Reporting (Unban)'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setBanModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition-all shadow-xs cursor-pointer"
+                      >
+                        <UserX className="w-4 h-4 text-red-600" />
+                        <span>Ban Citizen from Reporting</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {banFeedback && (
+                <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 p-2.5 text-xs font-bold text-blue-900">
+                  {banFeedback}
+                </div>
+              )}
+
+              {/* Ban Confirmation Modal / Box */}
+              {banModalOpen && (
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <div className="rounded-xl border border-red-200 bg-white p-4 shadow-sm space-y-3">
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-extrabold text-red-900">Ban Citizen from Reporting & Commenting</h4>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          If citizens flagged this issue as fake, prank, or duplicate, banning will reduce their civic score to 0 and block them from submitting further reports or posting comments.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="block text-xs font-bold text-slate-700" htmlFor="ban-reason-input">
+                      Reason for Ban (Visible to citizen & stored on audit record)
+                    </label>
+                    <textarea
+                      id="ban-reason-input"
+                      rows={2}
+                      value={banReason}
+                      onChange={(e) => setBanReason(e.target.value)}
+                      placeholder="e.g. Flagged by community for submitting fake or duplicate civic report."
+                      className="w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        disabled={banBusy}
+                        onClick={() => setBanModalOpen(false)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={banBusy}
+                        onClick={() => void handleBanCitizen('BAN')}
+                        className="px-4 py-1.5 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer shadow-xs"
+                      >
+                        {banBusy ? 'Banning...' : 'Confirm Ban & Set Score to 0'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             {ticket.initialPhotoUrl && <div><h3 className="mb-2 text-sm font-bold">Stage 1: Reported Issue</h3><img src={ticket.initialPhotoUrl} alt="Photo submitted with the complaint" className="max-h-96 rounded-xl border border-slate-200 object-contain" /></div>}
             {ticket.resolutionPhotoUrl && <div><h3 className="mb-2 text-sm font-bold">Stage 2: After Repair</h3><img src={ticket.resolutionPhotoUrl} alt="After-repair photo proof" className="max-h-96 rounded-xl border border-slate-200 object-contain" /></div>}

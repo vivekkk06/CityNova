@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight } from 'lucide-react';
@@ -11,8 +12,29 @@ export default function Footer() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const [rightsOpen, setRightsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const cityName = user?.city?.name || 'Your city';
   const stateName = user?.state || user?.city?.state || '';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when any modal is active
+  useEffect(() => {
+    if (aboutOpen || howOpen || rightsOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [aboutOpen, howOpen, rightsOpen]);
+
+  const renderModal = (content: React.ReactNode) => {
+    if (!mounted || typeof document === 'undefined') return null;
+    return createPortal(content, document.body);
+  };
 
   useEffect(() => {
     if (!aboutOpen && !howOpen && !rightsOpen) return;
@@ -141,122 +163,203 @@ export default function Footer() {
         </div>
       </div>
 
-      {aboutOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setAboutOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="about-citynova-title" className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl sm:p-8">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-orange-800"><Building2 className="h-4 w-4" />{cityName}{stateName ? `, ${stateName}` : ''}</span>
-              <h2 id="about-citynova-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">About CityNova</h2>
-            </div>
-            <button type="button" onClick={() => setAboutOpen(false)} aria-label="Close About CityNova" className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"><X className="h-6 w-6" /></button>
-          </div>
-
-          <div className="space-y-4 py-6 text-sm leading-6 text-slate-600 sm:text-base">
-            <p><strong className="text-slate-800">CityNova</strong> is a civic reporting and accountability platform configured for <strong className="text-slate-800">{cityName}{stateName ? `, ${stateName}` : ''}</strong>. Residents can report local problems and follow their progress.</p>
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-bold text-slate-900">Core Mission</h3>
-              <p>Make civic issue reporting and follow-up clearer through transparent status tracking, location details, repair evidence, and citizen sign-off.</p>
-            </div>
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-bold text-slate-900">Public Service Commitments</h3>
-              <p>Complaints are tracked with status updates and service timelines. Applicable local service rules and timelines depend on the selected city.</p>
-            </div>
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <h3 className="font-bold text-slate-900">Responsible Departments</h3>
-              <p>Complaints may concern the local departments responsible for roads, water, sanitation, electricity, and other civic services.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
-            <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
-            <button type="button" onClick={() => setAboutOpen(false)} className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200">Close</button>
-          </div>
-        </section>
-      </div>}
-
-      {howOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setHowOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="how-citynova-title" className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl sm:p-8">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-blue-800"><CircleHelp className="h-4 w-4" />How it works</span>
-              <h2 id="how-citynova-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">How CityNova Works</h2>
-            </div>
-            <button type="button" onClick={() => setHowOpen(false)} aria-label="Close How it works" className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"><X className="h-6 w-6" /></button>
-          </div>
-
-          <div className="space-y-5 py-6 text-sm leading-7 text-slate-600 sm:text-base">
-            <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 sm:p-7">
-              <p className="text-base font-semibold leading-8 text-slate-800 sm:text-lg">Citizens in <strong>{cityName}</strong> can report local issues, share evidence, engage with their community, and track responses and progress in one place. CityNova makes each report easier to follow and helps residents participate in building cleaner, safer, and smarter cities.</p>
-              <p className="font-bold text-blue-900">Your city, your voice, your future.</p>
-            </div>
-
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
-              <p>Citizens submit a description, photos, and the issue location. They can browse reports in {cityName}, support and comment on posts, and follow status updates. When repair proof is posted, the reporting citizen can review it, sign off, or escalate the complaint back to In Progress.</p>
-              <p className="font-semibold text-slate-800">Authority Employees review city reports, update complaint status, add comments, and provide an after-repair photo when marking work as repaired.</p>
-              <p>Together, residents and Authority Employees can make local problems visible and encourage transparent, accountable civic services.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
-            <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
-            <button type="button" onClick={() => setHowOpen(false)} className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200">Close</button>
-          </div>
-        </section>
-      </div>}
-
-      {rightsOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setRightsOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="citizen-rights-title" className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-7">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-purple-800"><Scale className="h-4 w-4" />Citizen Legal Charter</span>
-              <h2 id="citizen-rights-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Essential Citizen Rights Every Indian Should Know</h2>
-              <p className="mt-2 text-sm text-slate-500 sm:text-base">Fundamental legal protections, complaint mechanisms, and practical safeguards for everyday citizens.</p>
-            </div>
-            <button type="button" onClick={() => setRightsOpen(false)} aria-label="Close Citizen's Rights" className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"><X className="h-6 w-6" /></button>
-          </div>
-
-          <div className="space-y-5 py-6">
-            <article className="rounded-2xl border border-purple-200 p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-black text-white">1</span>
-                <h3 className="text-lg font-extrabold sm:text-xl">Right to Information (RTI): Ask the Government for Records</h3>
+      {aboutOpen && renderModal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAboutOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="about-citynova-title"
+            className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-orange-800">
+                  <Building2 className="h-4 w-4" />{cityName}{stateName ? `, ${stateName}` : ''}
+                </span>
+                <h2 id="about-citynova-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">About CityNova</h2>
               </div>
-              <p className="mt-3 inline-flex rounded-md bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-800">RTI Act, 2005 (Sections 3, 6, 7 &amp; 19)</p>
-              <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">Indian citizens can request information and records held by public authorities without explaining why. You can inspect public works, project progress, expenditure, and administrative decisions. If rejected, an official appeal process is provided.</p>
-              <a href="https://rtionline.gov.in/" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 hover:text-purple-900">RTI Online <ExternalLink className="h-4 w-4" /></a>
-              <p className="mt-2 text-xs leading-5 text-slate-500">The central RTI Online portal accepts requests for Central Government public authorities. For state or local authorities, use the applicable state process.</p>
-            </article>
+              <button
+                type="button"
+                onClick={() => setAboutOpen(false)}
+                aria-label="Close About CityNova"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
 
-            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-black text-white">2</span>
-                <h3 className="text-lg font-extrabold sm:text-xl">Freedom of Speech &amp; Peaceful Assembly</h3>
-                <span className="rounded-md bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-800">Constitution of India, Article 19(1)(a) &amp; 19(1)(b)</span>
+            <div className="space-y-4 py-6 text-sm leading-6 text-slate-600 sm:text-base">
+              <p><strong className="text-slate-800">CityNova</strong> is a civic reporting and accountability platform configured for <strong className="text-slate-800">{cityName}{stateName ? `, ${stateName}` : ''}</strong>. Residents can report local problems and follow their progress.</p>
+              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="font-bold text-slate-900">Core Mission</h3>
+                <p>Make civic issue reporting and follow-up clearer through transparent status tracking, location details, repair evidence, and citizen sign-off.</p>
               </div>
-              <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">Citizens have the constitutional right to express opinions, question government policies, and assemble peacefully without arms, subject to lawful conditions and public order requirements.</p>
-              <a href="https://www.legislative.gov.in/static/uploads/2025/07/88cca69e868e50b217f855be2fb8bdba.pdf" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 hover:text-purple-900">Constitution of India, Article 19 <ExternalLink className="h-4 w-4" /></a>
-            </article>
+              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="font-bold text-slate-900">Public Service Commitments</h3>
+                <p>Complaints are tracked with status updates and service timelines. Applicable local service rules and timelines depend on the selected city.</p>
+              </div>
+              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="font-bold text-slate-900">Responsible Departments</h3>
+                <p>Complaints may concern the local departments responsible for roads, water, sanitation, electricity, and other civic services.</p>
+              </div>
+            </div>
 
-            <aside className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amber-950"><Lightbulb className="h-5 w-5 text-amber-600" />Practical Knowledge Citizens Should Remember</h3>
-              <ul className="mt-4 space-y-3">
-                {[
-                  'Ask for an acknowledgment and always keep the complaint number, filing date, and receiving office details.',
-                  'Preserve relevant physical and digital evidence: photographs, receipts, messages, and official correspondence.',
-                  'Ask for written reasons and the statutory rule or procedure relied upon whenever an official decision affects you.',
-                  'Use the correct escalation route: municipal grievance, police complaint, RTI application, and consumer court are distinct processes.',
-                  'Check deadlines: statutory appeals and review petitions have strict legal time limits.',
-                ].map((tip) => <li key={tip} className="flex gap-3 rounded-xl border border-amber-100 bg-white/80 p-3.5 text-sm leading-6 text-slate-700 sm:text-base"><CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />{tip}</li>)}
-              </ul>
-            </aside>
-          </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
+              <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
+              <button
+                type="button"
+                onClick={() => setAboutOpen(false)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
-            <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
-            <button type="button" onClick={() => setRightsOpen(false)} className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200">Close</button>
-          </div>
-        </section>
-      </div>}
+      {howOpen && renderModal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setHowOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="how-citynova-title"
+            className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-blue-800">
+                  <CircleHelp className="h-4 w-4" />How it works
+                </span>
+                <h2 id="how-citynova-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">How CityNova Works</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHowOpen(false)}
+                aria-label="Close How it works"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-5 py-6 text-sm leading-7 text-slate-600 sm:text-base">
+              <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 sm:p-7">
+                <p className="text-base font-semibold leading-8 text-slate-800 sm:text-lg">Citizens in <strong>{cityName}</strong> can report local issues, share evidence, engage with their community, and track responses and progress in one place. CityNova makes each report easier to follow and helps residents participate in building cleaner, safer, and smarter cities.</p>
+                <p className="font-bold text-blue-900">Your city, your voice, your future.</p>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
+                <p>Citizens submit a description, photos, and the issue location. They can browse reports in {cityName}, support and comment on posts, and follow status updates. When repair proof is posted, the reporting citizen can review it, sign off, or escalate the complaint back to In Progress.</p>
+                <p className="font-semibold text-slate-800">Authority Employees review city reports, update complaint status, add comments, and provide an after-repair photo when marking work as repaired.</p>
+                <p>Together, residents and Authority Employees can make local problems visible and encourage transparent, accountable civic services.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
+              <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
+              <button
+                type="button"
+                onClick={() => setHowOpen(false)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {rightsOpen && renderModal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRightsOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="citizen-rights-title"
+            className="relative z-10 max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-7"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-purple-800">
+                  <Scale className="h-4 w-4" />Citizen Legal Charter
+                </span>
+                <h2 id="citizen-rights-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Essential Citizen Rights Every Indian Should Know</h2>
+                <p className="mt-2 text-sm text-slate-500 sm:text-base">Fundamental legal protections, complaint mechanisms, and practical safeguards for everyday citizens.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRightsOpen(false)}
+                aria-label="Close Citizen's Rights"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-5 py-6">
+              <article className="rounded-2xl border border-purple-200 p-5 sm:p-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-black text-white">1</span>
+                  <h3 className="text-lg font-extrabold sm:text-xl">Right to Information (RTI): Ask the Government for Records</h3>
+                </div>
+                <p className="mt-3 inline-flex rounded-md bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-800">RTI Act, 2005 (Sections 3, 6, 7 &amp; 19)</p>
+                <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">Indian citizens can request information and records held by public authorities without explaining why. You can inspect public works, project progress, expenditure, and administrative decisions. If rejected, an official appeal process is provided.</p>
+                <a href="https://rtionline.gov.in/" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 hover:text-purple-900">RTI Online <ExternalLink className="h-4 w-4" /></a>
+                <p className="mt-2 text-xs leading-5 text-slate-500">The central RTI Online portal accepts requests for Central Government public authorities. For state or local authorities, use the applicable state process.</p>
+              </article>
+
+              <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-black text-white">2</span>
+                  <h3 className="text-lg font-extrabold sm:text-xl">Freedom of Speech &amp; Peaceful Assembly</h3>
+                  <span className="rounded-md bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-800">Constitution of India, Article 19(1)(a) &amp; 19(1)(b)</span>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">Citizens have the constitutional right to express opinions, question government policies, and assemble peacefully without arms, subject to lawful conditions and public order requirements.</p>
+                <a href="https://www.legislative.gov.in/static/uploads/2025/07/88cca69e868e50b217f855be2fb8bdba.pdf" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-purple-700 hover:text-purple-900">Constitution of India, Article 19 <ExternalLink className="h-4 w-4" /></a>
+              </article>
+
+              <aside className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+                <h3 className="flex items-center gap-2 text-lg font-extrabold text-amber-950"><Lightbulb className="h-5 w-5 text-amber-600" />Practical Knowledge Citizens Should Remember</h3>
+                <ul className="mt-4 space-y-3">
+                  {[
+                    'Ask for an acknowledgment and always keep the complaint number, filing date, and receiving office details.',
+                    'Preserve relevant physical and digital evidence: photographs, receipts, messages, and official correspondence.',
+                    'Ask for written reasons and the statutory rule or procedure relied upon whenever an official decision affects you.',
+                    'Use the correct escalation route: municipal grievance, police complaint, RTI application, and consumer court are distinct processes.',
+                    'Check deadlines: statutory appeals and review petitions have strict legal time limits.',
+                  ].map((tip) => <li key={tip} className="flex gap-3 rounded-xl border border-amber-100 bg-white/80 p-3.5 text-sm leading-6 text-slate-700 sm:text-base"><CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />{tip}</li>)}
+                </ul>
+              </aside>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
+              <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Citizen Empowerment</p>
+              <button
+                type="button"
+                onClick={() => setRightsOpen(false)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </footer>
   );
 }

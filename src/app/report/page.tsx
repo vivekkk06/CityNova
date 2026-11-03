@@ -145,7 +145,14 @@ export default function ReportPage() {
 
   // Voice transcript handler
   const handleVoiceTranscript = (transcript: string, audio?: File) => {
-    setDescription((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    if (transcript && transcript.trim()) {
+      setDescription((prev) => {
+        if (!prev || prev.trim() === 'Civic issue reported via voice note.') {
+          return transcript.trim();
+        }
+        return `${prev.trim()} ${transcript.trim()}`;
+      });
+    }
     if (audio) setAudioFile(audio);
   };
 
@@ -216,6 +223,11 @@ export default function ReportPage() {
 
   // 1-Minute Direct Submission
   const handleSubmitGrievance = async (bypassDuplicate = false) => {
+    if (user?.isBanned) {
+      alert(user?.banReason || 'Your account has been restricted by Municipal Authority from filing civic reports.');
+      return;
+    }
+
     if (!description.trim()) {
       alert('Please describe the problem or record a short voice note.');
       return;
@@ -404,6 +416,28 @@ export default function ReportPage() {
                 Submit a report for {user?.city?.name || 'your city'}. Add a location so your neighbors can find the issue.
               </p>
             </div>
+
+            {user?.isBanned && (
+              <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-6 text-red-900 shadow-xs space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                  <h3 className="text-base font-extrabold text-red-900">
+                    Account Restricted from Reporting by Municipal Authority
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-red-800 leading-relaxed">
+                  Your citizen account has been restricted from filing civic reports and complaints.
+                  {user.banReason && (
+                    <span className="block mt-1 font-bold">
+                      Reason: {user.banReason}
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-red-700">
+                  Civic score has been set to 0. If you believe this action was made in error or following false duplicate flags, please contact your municipal grievance office.
+                </p>
+              </div>
+            )}
 
             {/* SECTION 1: WHAT IS THE PROBLEM? */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
@@ -677,12 +711,14 @@ export default function ReportPage() {
                 <button
                   type="button"
                   onClick={() => handleSubmitGrievance(false)}
-                  disabled={isSubmitting || !description.trim() || !hasPickedMapLocation}
+                  disabled={Boolean(user?.isBanned) || isSubmitting || !description.trim() || !hasPickedMapLocation}
                   className="btn-saffron w-full py-4 rounded-xl text-sm font-black shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4 text-amber-200" />
                   <span>
-                    {isSubmitting
+                    {user?.isBanned
+                      ? 'Account Restricted by Authority'
+                      : isSubmitting
                       ? 'Submitting Grievance...'
                       : language === 'kok'
                       ? '🚀 तक्रार नोंदवा (Submit Grievance)'

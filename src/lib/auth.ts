@@ -76,6 +76,9 @@ export function publicUser(user: NonNullable<Awaited<ReturnType<typeof getAuthSe
     designation?: string | null;
     avatarUrl?: string | null;
     coverUrl?: string | null;
+    civicScore?: number | null;
+    isBanned?: boolean | null;
+    banReason?: string | null;
   };
   return {
     id: user.id,
@@ -89,6 +92,9 @@ export function publicUser(user: NonNullable<Awaited<ReturnType<typeof getAuthSe
     designation: u.designation ?? null,
     avatarUrl: u.avatarUrl ?? null,
     coverUrl: u.coverUrl ?? null,
+    civicScore: u.civicScore ?? 50,
+    isBanned: Boolean(u.isBanned),
+    banReason: u.banReason ?? null,
     state: user.state,
     city: user.city ? {
       id: user.city.id,

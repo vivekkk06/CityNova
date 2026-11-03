@@ -14,6 +14,8 @@ import {
   HelpCircle,
   Minimize2,
   Maximize2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth-context';
@@ -48,6 +50,35 @@ Ask me about:
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageCounterRef = useRef(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollBounds = () => {
+    if (sliderRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+      setCanScrollLeft(scrollLeft > 2);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(checkScrollBounds, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  const scrollQuestions = (direction: 'left' | 'right') => {
+    if (sliderRef.current) {
+      const scrollAmount = 220;
+      sliderRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+      setTimeout(checkScrollBounds, 320);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -166,6 +197,11 @@ Ask me about:
     'What complaints have been reported recently?',
     'How do I open a complaint from the map?',
     `What issues have been reported in ${user?.city?.name || 'my city'}?`,
+    'How do I file a new civic grievance?',
+    'How do I track my submitted complaint status?',
+    'What is the SLA deadline for road repairs?',
+    'What civic categories can I report?',
+    'How do official authority settlements work?',
   ];
 
   return (
@@ -254,22 +290,94 @@ Ask me about:
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick FAQ Suggestion Pills */}
+          {/* Quick FAQ Suggestion Pills Horizontal Slider */}
           <div className="p-2.5 bg-slate-100/90 border-t border-slate-200 shrink-0">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 px-1">
-              Common Questions
-            </span>
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {sampleQuestions.map((sq, i) => (
+            <div className="flex items-center justify-between mb-1.5 px-0.5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                Common Questions
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] text-slate-400 font-medium mr-1 hidden sm:inline">
+                  Slide questions
+                </span>
                 <button
-                  key={i}
                   type="button"
-                  onClick={() => handleSend(sq.slice(3))}
-                  className="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-blue-500 text-[11px] font-semibold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer"
+                  onClick={() => scrollQuestions('left')}
+                  disabled={!canScrollLeft}
+                  aria-label="Slide previous questions"
+                  title="Previous questions"
+                  className={`w-5 h-5 rounded flex items-center justify-center border transition-all cursor-pointer ${
+                    canScrollLeft
+                      ? 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-400 shadow-2xs hover:bg-slate-50 active:scale-95'
+                      : 'bg-slate-200/50 border-slate-200 text-slate-300 cursor-not-allowed opacity-40'
+                  }`}
                 >
-                  {sq}
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => scrollQuestions('right')}
+                  disabled={!canScrollRight}
+                  aria-label="Slide next questions"
+                  title="Next questions"
+                  className={`w-5 h-5 rounded flex items-center justify-center border transition-all cursor-pointer ${
+                    canScrollRight
+                      ? 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-400 shadow-2xs hover:bg-slate-50 active:scale-95'
+                      : 'bg-slate-200/50 border-slate-200 text-slate-300 cursor-not-allowed opacity-40'
+                  }`}
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => scrollQuestions('left')}
+                disabled={!canScrollLeft}
+                aria-label="Slide questions left"
+                title="Slide left"
+                className={`shrink-0 w-6 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
+                  canScrollLeft
+                    ? 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-400 shadow-2xs hover:bg-slate-50 active:scale-95'
+                    : 'bg-slate-200/50 border-slate-200 text-slate-300 cursor-not-allowed opacity-30 pointer-events-none'
+                }`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div
+                ref={sliderRef}
+                onScroll={checkScrollBounds}
+                className="flex-1 flex gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scroll-smooth select-none questions-slider-bar"
+              >
+                {sampleQuestions.map((sq, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSend(sq)}
+                    className="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 text-[11px] font-semibold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer shadow-2xs whitespace-nowrap active:scale-95"
+                  >
+                    {sq}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => scrollQuestions('right')}
+                disabled={!canScrollRight}
+                aria-label="Slide questions right"
+                title="Slide right"
+                className={`shrink-0 w-6 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
+                  canScrollRight
+                    ? 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-400 shadow-2xs hover:bg-slate-50 active:scale-95'
+                    : 'bg-slate-200/50 border-slate-200 text-slate-300 cursor-not-allowed opacity-30 pointer-events-none'
+                }`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
 

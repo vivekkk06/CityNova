@@ -187,6 +187,26 @@ textarea,
   background: #94a3b8;
 }
 
+/* Enquiry horizontal question slider scrollbar */
+.questions-slider-bar {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #e2e8f0;
+}
+.questions-slider-bar::-webkit-scrollbar {
+  height: 5px;
+}
+.questions-slider-bar::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 9999px;
+}
+.questions-slider-bar::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 9999px;
+}
+.questions-slider-bar::-webkit-scrollbar-thumb:hover {
+  background: #1d4ed8;
+}
+
 
 /* GPS Current Location Pulsing animation */
 @keyframes gps-pulse {

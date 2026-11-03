@@ -11,9 +11,6 @@ export async function POST(
     if (!session?.user.cityId || !session.user.city) {
       return NextResponse.json({ error: 'Please sign in to react to a post.' }, { status: 401 });
     }
-    if (session.user.role !== 'CITIZEN') {
-      return NextResponse.json({ error: 'Authority Employee accounts can view +1 totals but cannot react.' }, { status: 403 });
-    }
 
     const { id } = await params;
     const cityFilter = session.user.city.normalizedKey === 'ponda,goa,india'

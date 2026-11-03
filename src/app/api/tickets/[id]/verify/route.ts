@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
+import { syncUserCivicScore } from '@/lib/civic-score';
 
 export async function PATCH(
   req: NextRequest,
@@ -11,7 +12,7 @@ export async function PATCH(
     if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     const { id } = await params;
     const body = await req.json();
-    const { action, disputeReason } = body;
+    const { action, disputeReason, comment } = body;
 
     const ticket = await prisma.ticket.findFirst({
       where: {
@@ -28,14 +29,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'Civic ticket not found' }, { status: 404 });
     }
 
-    if (ticket.reporterId !== session.user.id) {
-      return NextResponse.json({ error: 'Only the account that reported this complaint can update its resolution review.' }, { status: 403 });
+    const isCitizen = session.user.role === 'CITIZEN';
+    const isReporter = ticket.reporterId === session.user.id;
+    const isAuthority = session.user.role === 'AUTHORITY';
+
+    if (!isCitizen && !isReporter && !isAuthority) {
+      return NextResponse.json({ error: 'Please sign in to update or dispute the resolution review.' }, { status: 403 });
     }
+
+    const actorDisplayName = session.user.username
+      ? `@${session.user.username}`
+      : session.user.name || (isAuthority ? 'Authority Official' : 'Citizen');
 
     if (action === 'VERIFY') {
       if (ticket.status !== 'PROVISIONALLY_RESOLVED') {
         return NextResponse.json({ error: 'Only complaints awaiting citizen sign-off can be closed.' }, { status: 409 });
       }
+      const verifiedComment = comment?.trim()
+        ? `Citizen Inspected & Signed Off: "${comment.trim()}"`
+        : 'Citizen signed off after reviewing the repair proof.';
+
       const [updatedTicket] = await prisma.$transaction([
         prisma.ticket.update({ where: { id: ticket.id }, data: { status: 'CLOSED' } }),
         prisma.ticketStatusHistory.create({
@@ -43,12 +56,16 @@ export async function PATCH(
             ticketId: ticket.id,
             actorId: session.user.id,
             actorRole: session.user.role,
-            actorName: session.user.username ? `@${session.user.username}` : 'Citizen',
+            actorName: actorDisplayName,
             status: 'CLOSED',
-            comment: 'Citizen signed off after reviewing the repair proof.',
+            comment: verifiedComment,
           },
         }),
       ]);
+
+      if (ticket.reporterId) {
+        await syncUserCivicScore(ticket.reporterId);
+      }
 
       return NextResponse.json({
         success: true,
@@ -69,18 +86,21 @@ export async function PATCH(
       }
 
       const previousResolutionPhoto = ticket.resolutionPhotoUrl;
+      const disputeComment = `Citizen Dispute Raised: "${disputeReason.trim()}"`;
+
       const [updatedTicket] = await prisma.$transaction([
         prisma.ticket.update({
           where: { id: ticket.id },
           data: {
-          status: 'IN_PROGRESS',
-          disputeReason: disputeReason.trim(),
-          disputePhotoUrl: null,
-          resolutionPhotoUrl: null,
-          resolutionGpsLat: null,
-          resolutionGpsLng: null,
-          resolutionTimestamp: null,
-          resolutionNotes: null,
+            status: 'IN_PROGRESS',
+            hadDispute: true,
+            disputeReason: disputeReason.trim(),
+            disputePhotoUrl: null,
+            resolutionPhotoUrl: null,
+            resolutionGpsLat: null,
+            resolutionGpsLng: null,
+            resolutionTimestamp: null,
+            resolutionNotes: null,
           },
         }),
         prisma.ticketStatusHistory.create({
@@ -88,9 +108,9 @@ export async function PATCH(
             ticketId: ticket.id,
             actorId: session.user.id,
             actorRole: session.user.role,
-            actorName: session.user.username ? `@${session.user.username}` : 'Citizen',
+            actorName: actorDisplayName,
             status: 'IN_PROGRESS',
-            comment: disputeReason.trim(),
+            comment: disputeComment,
           },
         }),
       ]);

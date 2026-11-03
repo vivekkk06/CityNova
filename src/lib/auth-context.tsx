@@ -14,6 +14,9 @@ export interface SignedInUser {
   designation?: string | null;
   avatarUrl?: string | null;
   coverUrl?: string | null;
+  civicScore?: number;
+  isBanned?: boolean;
+  banReason?: string | null;
   state: string | null;
   city: { id: string; name: string; state: string; centerLat: number; centerLng: number } | null;
 }

@@ -492,14 +492,14 @@ export default function CivicMap({
   }, [clickedLocation]);
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-slate-900 ${className || 'aspect-square rounded-2xl'}`}>
+    <div className={`relative isolate z-0 w-full h-full overflow-hidden bg-slate-900 ${className || 'aspect-square rounded-2xl'}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Subtle Inset Edge Bevel / Shadow for map boundary */}
-      <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-black/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.25)] z-[400]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-black/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.25)] z-10" />
 
       {/* FLOATING "LOCATE ME" / CURRENT GPS POSITION BUTTON */}
-      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2">
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
         <button
           type="button"
           onClick={() => locateUser(true)}

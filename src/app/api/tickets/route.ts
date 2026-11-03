@@ -5,6 +5,7 @@ import { findDuplicateTicketsNearby, generateCaseId } from '@/lib/gis';
 import { calculateSlaDeadline } from '@/lib/sla';
 import { sanitizeTicketForPublic } from '@/lib/privacy';
 import { getAuthSession } from '@/lib/auth';
+import { syncUserCivicScore } from '@/lib/civic-score';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,6 +44,12 @@ export async function POST(req: NextRequest) {
     const session = await getAuthSession(req);
     if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to submit a report.' }, { status: 401 });
     if (session.user.role !== 'CITIZEN') return NextResponse.json({ error: 'Only Citizen accounts can submit reports.' }, { status: 403 });
+    if (session.user.isBanned) {
+      return NextResponse.json({
+        error: session.user.banReason || 'Your account has been restricted by Municipal Authority from submitting civic reports.',
+        isBanned: true,
+      }, { status: 403 });
+    }
     const body = await req.json();
     const {
       title,
@@ -125,6 +132,8 @@ export async function POST(req: NextRequest) {
         city: true,
       },
     });
+
+    await syncUserCivicScore(session.user.id);
 
     return NextResponse.json({
       success: true,

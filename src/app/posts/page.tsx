@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { MapPin, MessageCircle, ThumbsUp, Bookmark } from 'lucide-react';
+import { MapPin, MessageCircle, ThumbsUp, Bookmark, ShieldCheck } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/auth-context';
@@ -14,6 +14,8 @@ interface PostComment {
   authorUsername: string;
   authorName?: string;
   authorAvatarUrl?: string | null;
+  authorRole?: string;
+  authorDesignation?: string | null;
 }
 
 interface CityPost {
@@ -43,7 +45,7 @@ function statusOrder(status: string) {
 
 export default function PostsPage() {
   const { user, loading: authLoading } = useAuth();
-  const canInteract = !authLoading && user?.role !== 'AUTHORITY';
+  const canInteract = !authLoading && Boolean(user);
   const [posts, setPosts] = useState<CityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,26 +56,32 @@ export default function PostsPage() {
 
   useEffect(() => {
     try {
-      const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+      // Purge legacy global key that leaked saved posts across users
+      localStorage.removeItem('citynova_saved_posts');
+
+      if (!user?.id) {
+        setSavedPostIds([]);
+        return;
+      }
+      const key = `citynova_saved_posts_${user.id}`;
       const stored = localStorage.getItem(key);
       if (stored) {
         setSavedPostIds(JSON.parse(stored));
       } else {
-        const fallback = localStorage.getItem('citynova_saved_posts');
-        if (fallback) setSavedPostIds(JSON.parse(fallback));
+        setSavedPostIds([]);
       }
     } catch {}
   }, [user?.id]);
 
   const toggleSavePost = (postId: string) => {
+    if (!user?.id) return;
     setSavedPostIds((prev) => {
       const updated = prev.includes(postId)
         ? prev.filter((id) => id !== postId)
         : [...prev, postId];
       try {
-        const key = user?.id ? `citynova_saved_posts_${user.id}` : 'citynova_saved_posts';
+        const key = `citynova_saved_posts_${user.id}`;
         localStorage.setItem(key, JSON.stringify(updated));
-        localStorage.setItem('citynova_saved_posts', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -250,14 +258,24 @@ export default function PostsPage() {
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src={comment.authorAvatarUrl}
-                                    alt={comment.authorUsername}
+                                    alt={comment.authorName || comment.authorUsername}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
                                   <span>{(comment.authorName || comment.authorUsername).slice(0, 2).toUpperCase()}</span>
                                 )}
                               </div>
-                              <span className="text-xs font-bold text-slate-800">@{comment.authorUsername}</span>
+                              {comment.authorRole === 'AUTHORITY' ? (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-black text-slate-900">{comment.authorName || 'Authority Official'}</span>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-extrabold border border-blue-200">
+                                    <ShieldCheck className="w-3 h-3 text-blue-700" />
+                                    <span>{comment.authorDesignation || 'Authority Official'}</span>
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-slate-800">@{comment.authorUsername}</span>
+                              )}
                             </div>
                             <time className="text-[11px] text-slate-500">{new Date(comment.createdAt).toLocaleString()}</time>
                           </div>

@@ -27,6 +27,11 @@ model User {
   bio           String?
   avatarUrl     String?
   coverUrl      String?
+  civicScore    Int              @default(50)
+  isBanned      Boolean          @default(false)
+  banReason     String?
+  bannedAt      DateTime?
+  bannedBy      String?
   role          String           @default("CITIZEN")
   sessions      Session[]
   tickets       Ticket[]
@@ -103,6 +108,7 @@ model Ticket {
   // Citizen Verification / Dispute
   disputeReason   String?
   disputePhotoUrl String?
+  hadDispute      Boolean          @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

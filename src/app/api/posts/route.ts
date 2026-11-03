@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             id: true,
             body: true,
             createdAt: true,
-            user: { select: { username: true, name: true, avatarUrl: true } },
+            user: { select: { username: true, name: true, avatarUrl: true, role: true, designation: true } },
           },
         },
       },
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       description: ticket.description,
       category: ticket.category,
       status: ticket.status,
-      addressDescription: ticket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, ''),
+      addressDescription: ticket.addressDescription ? ticket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, '') : '',
       createdAt: ticket.createdAt,
       authorUsername: ticket.reporter?.username || 'citizen',
       authorName: ticket.reporter?.name || 'Citizen',
@@ -66,6 +66,8 @@ export async function GET(request: NextRequest) {
         authorUsername: comment.user.username || 'citizen',
         authorName: comment.user.name || 'Citizen',
         authorAvatarUrl: comment.user.avatarUrl || null,
+        authorRole: comment.user.role,
+        authorDesignation: comment.user.designation || null,
       })),
     }));
 
