@@ -5,22 +5,50 @@ System**\
 **Theme:** Governance & Civic Technology\
 **Team:** CityNova
 
+## Overview
+
+CityNova is a socially interactive civic-tech platform designed to
+connect citizens with local authorities and make community issues easier
+to report, discuss, track, and resolve. The goal is to improve
+transparency and accountability by giving citizens a shared place to
+raise concerns and follow the progress of civic work.
+
+The platform is envisioned as a "city in your pocket," bringing civic
+reporting and public information into one accessible interface.
+
 ## Quick Start (run locally)
 
 **Stack**: Next.js (React, TypeScript, Tailwind CSS), Prisma ORM, SQLite, Leaflet maps. No Docker or external database is needed.
 
-**Requirements**: Node.js, npm, and an internet connection (for map tiles and package install).\
-
-`git clone https://github.com/vivekkk06/CityNova.git`\
-`cd CityNova`\
-`npm install`\
-`cp .env.example .env`      --> Windows PowerShell: copy .env.example .env\
-`npx prisma generate`\
-`npx prisma db push`\
-`npm run dev`
-
+**Requirements**: Node.js, npm, and an internet connection (for map tiles and package install).
+```
+git clone https://github.com/vivekkk06/CityNova.git
+cd CityNova
+npm install
+cp .env.example .env      --> Windows PowerShell: copy .env.example .env
+npx prisma generate
+npx prisma db push
+npm run dev
+```
 Open http://localhost:3000 in your browser.
+The repository already includes `prisma/dev.db` with sample reports, so the site is populated on first run. To reset the sample data at any time, run `npx prisma db seed`. Note that this replaces existing reports with the sample set.
 
+## Environment variables
+
+`.env.example` contains everything required:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Yes | SQLite file location. Keep `file:./dev.db`. |
+| `CITYNOVA_AUTH_SECRET` | Yes | Random string of 32+ characters used for sessions. The app will not start login without it. |
+| `GEMINI_API_KEY` | Optional | Enables the Gemini-powered public-enquiry agent. |
+| `OPENAI_API_KEY` | Optional | Enables OpenAI report drafting. Without it, the built-in civic classifier is used. |
+
+## Troubleshooting
+
+- **Login fails with "Account security is not configured"**: the `.env` file is missing or `CITYNOVA_AUTH_SECRET` is too short. Copy `.env.example` to `.env` (it already has a valid value), then restart `npm run dev`.
+- **Port 3000 is busy**: run `npm run dev -- -p 3001`.
+- **Prisma errors after install**: run `npx prisma generate` again.
 ## Demo Accounts(for testing)
 
 The database ships with ready-made accounts so you can test the site without registering. There is no password: sign in with the username and phone number.
@@ -44,17 +72,6 @@ Choose **Authority** on the login page.
 | Saksham Pandey | saksham1 | 9259234046 | 823456781239925 | CP
 
 You can also register a new account from the sign-up page. The numbers above are demo data only.
-
-## Overview
-
-CityNova is a socially interactive civic-tech platform designed to
-connect citizens with local authorities and make community issues easier
-to report, discuss, track, and resolve. The goal is to improve
-transparency and accountability by giving citizens a shared place to
-raise concerns and follow the progress of civic work.
-
-The platform is envisioned as a "city in your pocket," bringing civic
-reporting and public information into one accessible interface.
 
 ## The Problem
 
