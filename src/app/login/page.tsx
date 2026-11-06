@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, useRef, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import citynovaLogo from '../../../public/citynova-icon.png';
 import { ArrowRight, ShieldCheck, UserRound, LockKeyhole, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { INDIAN_STATES, normalizeIndianState, isIndianState, getCitiesForState } from '@/data/india-states-cities';
@@ -31,6 +32,36 @@ export default function LoginPage() {
 
   const [isCustomCity, setIsCustomCity] = useState(false);
   const [customCityText, setCustomCityText] = useState('');
+
+  // Viksit Bharat by 2047 banner animation below the login card
+  const viksitBannerRef = useRef<HTMLDivElement | null>(null);
+  const [viksitAnimKey, setViksitAnimKey] = useState(0);
+  const [viksitTriggered, setViksitTriggered] = useState(false);
+
+  useEffect(() => {
+    const node = viksitBannerRef.current;
+    if (!node) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setViksitTriggered(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setViksitTriggered(true);
+            setViksitAnimKey((k) => k + 1);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   // Validate state in real time
   const canonicalState = useMemo(() => {
@@ -146,7 +177,7 @@ export default function LoginPage() {
           <div className="absolute -right-28 -top-24 h-80 w-80 rounded-full bg-orange-500/20 blur-3xl" />
           <Link href="/login" className="relative inline-flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 overflow-hidden shadow-lg border border-slate-800">
-              <Image src="/citynova-icon.png" alt="CityNova Logo" width={48} height={48} unoptimized className="w-full h-full object-contain" priority />
+              <Image src={citynovaLogo} alt="CityNova Logo" width={48} height={48} className="w-full h-full object-cover" priority />
             </span>
             <span className="text-2xl font-black">CityNova</span>
           </Link>
@@ -166,7 +197,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             <Link href="/login" className="mb-6 inline-flex items-center gap-2.5 text-xl font-black text-slate-900 lg:hidden">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 overflow-hidden shadow-sm shrink-0 border border-slate-800">
-                <Image src="/citynova-icon.png" alt="CityNova Logo" width={36} height={36} unoptimized className="w-full h-full object-contain" />
+                <Image src={citynovaLogo} alt="CityNova Logo" width={36} height={36} className="w-full h-full object-cover" />
               </span>
               CityNova
             </Link>
@@ -373,6 +404,31 @@ export default function LoginPage() {
           </div>
         </section>
       </div>
+
+      {/* Viksit Bharat by 2047 Vision Section below the login card (scrolling down) */}
+      <section
+        ref={viksitBannerRef}
+        aria-label="Viksit Bharat by 2047"
+        className="mt-28 sm:mt-40 mb-16 sm:mb-24 w-full overflow-hidden flex flex-col items-center justify-center text-center px-4"
+      >
+        <div className="w-full max-w-4xl overflow-hidden py-4">
+          <div
+            key={viksitAnimKey}
+            onClick={() => setViksitAnimKey((k) => k + 1)}
+            title="Click to replay animation"
+            className={`inline-flex flex-col items-center justify-center select-none cursor-pointer ${
+              viksitTriggered ? 'animate-viksit-settle' : 'opacity-0 -translate-x-[60vw]'
+            }`}
+          >
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 drop-shadow-sm">
+              Viksit Bharat by 2047
+            </h2>
+            <sub className="mt-2 sm:mt-3 text-sm sm:text-lg md:text-xl font-bold tracking-widest text-orange-600 uppercase">
+              City in the Pocket
+            </sub>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

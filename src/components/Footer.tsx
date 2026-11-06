@@ -4,11 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 export default function Footer() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const isAuthority = user?.role === 'AUTHORITY' || pathname?.startsWith('/authority');
   const [aboutOpen, setAboutOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const [rightsOpen, setRightsOpen] = useState(false);
@@ -81,18 +84,20 @@ export default function Footer() {
               Citizen Services
             </h4>
             <div className="p-3 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 shadow-sm">
-              <div className="grid grid-cols-4 gap-2">
-                <Link
-                  href="/report"
-                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-emerald-500/40 text-center transition-all group hover:scale-105 min-h-[96px]"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
-                    <PlusCircle className="w-4 h-4" />
-                  </span>
-                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
-                    Report a Problem
-                  </span>
-                </Link>
+              <div className={`grid ${isAuthority ? 'grid-cols-3' : 'grid-cols-4'} gap-2`}>
+                {!isAuthority && (
+                  <Link
+                    href="/report"
+                    className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-emerald-500/40 text-center transition-all group hover:scale-105 min-h-[96px]"
+                  >
+                    <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                      <PlusCircle className="w-4 h-4" />
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                      Report a Problem
+                    </span>
+                  </Link>
+                )}
 
                 <button
                   type="button"

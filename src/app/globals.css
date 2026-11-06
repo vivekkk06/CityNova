@@ -247,3 +247,39 @@ textarea,
 .pin-drop-anim {
   animation: pin-drop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+/* Viksit Bharat by 2047: Left-to-right entrance settling in center */
+@keyframes viksit-slide-settle {
+  0% {
+    opacity: 0;
+    transform: translate3d(-60vw, 0, 0);
+  }
+  60% {
+    opacity: 1;
+    transform: translate3d(24px, 0, 0);
+  }
+  80% {
+    transform: translate3d(-8px, 0, 0);
+  }
+  92% {
+    transform: translate3d(2px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-viksit-settle {
+  animation: viksit-slide-settle 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-viksit-settle {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
