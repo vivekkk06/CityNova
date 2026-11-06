@@ -25,7 +25,7 @@ reporting and public information into one accessible interface.
 git clone https://github.com/vivekkk06/CityNova.git
 cd CityNova
 npm install
-cp .env.example .env      --> Windows PowerShell: copy .env.example .env
+cp .env.example .env      
 npx prisma generate
 npx prisma db push
 npm run dev
@@ -52,6 +52,8 @@ The repository already includes `prisma/dev.db` with sample reports, so the site
 ## Demo Accounts(for testing)
 
 The database ships with ready-made accounts so you can test the site without registering. There is no password: sign in with the username and phone number.
+
+**State: Goa, City: Ponda**
 
 ### Citizen accounts
 Choose **Citizen** on the login page.
@@ -117,6 +119,7 @@ problems and ward-level indicators more visible.
     that recognizes useful, genuine reports and successful resolution.
     Scoring rules should be transparent and include safeguards against
     unfair penalties.
+-   Civic score rules: If the report is not fake it gets 10 points. If the citizen is able to get the work initiated it will get 15. And if the issue is resolved & verified more 35 points will be added.
 
 ## Technical Approach
 
@@ -133,6 +136,7 @@ The project presentation describes the following technical components:
     completion evidence.
 8.  Dashboards for recurring issues, pending reports, resolution
     timelines.
+9.  We used GEMINI_API_KEY to integrate the AI features.
 
 **Technology stack:** The project presentation refers to web frameworks,
 databases, and AI/ML tools, but does not specify their exact names.
